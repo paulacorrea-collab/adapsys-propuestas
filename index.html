@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adapsys · Asistente de Propuestas</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --teal: #028090;
+  --teal-dark: #01606e;
+  --teal-light: #e0f4f7;
+  --mint: #02C39A;
+  --pink: #e84393;
+  --bg: #f4f7f8;
+  --surface: #ffffff;
+  --border: #dde5e8;
+  --text: #1a2b30;
+  --muted: #6b8c94;
+  --radius: 12px;
+  --shadow: 0 2px 20px rgba(2,128,144,0.07);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+/* ── SETUP SCREEN ── */
+#setupScreen {
+  position: fixed; inset: 0; background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100; flex-direction: column; gap: 0;
+}
+.setup-card {
+  background: white; border-radius: 20px; padding: 48px 52px;
+  box-shadow: 0 8px 60px rgba(2,128,144,0.12);
+  max-width: 520px; width: 90%;
+}
+.setup-logo {
+  font-family: 'DM Serif Display', serif;
+  font-size: 28px; color: var(--teal); letter-spacing: -1px; margin-bottom: 8px;
+}
+.setup-logo span { color: var(--pink); }
+.setup-tagline { font-size: 13px; color: var(--muted); margin-bottom: 36px; }
+.setup-step {
+  margin-bottom: 24px;
+}
+.setup-label {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.8px;
+  text-transform: uppercase; color: var(--teal); margin-bottom: 8px;
+}
+.setup-input {
+  width: 100%; border: 1.5px solid var(--border); border-radius: 10px;
+  padding: 11px 14px; font-family: 'DM Sans', sans-serif; font-size: 14px;
+  color: var(--text); background: var(--bg); outline: none;
+  transition: border-color 0.2s;
+}
+.setup-input:focus { border-color: var(--teal); background: white; }
+.setup-hint {
+  font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.5;
+}
+.setup-hint a { color: var(--teal); text-decoration: none; font-weight: 500; }
+.setup-hint a:hover { text-decoration: underline; }
+.setup-btn {
+  width: 100%; background: var(--teal); color: white;
+  border: none; border-radius: 10px; padding: 14px;
+  font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600;
+  cursor: pointer; transition: background 0.2s; margin-top: 8px;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+}
+.setup-btn:hover { background: var(--teal-dark); }
+.setup-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.google-icon { width: 20px; height: 20px; }
+.setup-divider {
+  text-align: center; font-size: 12px; color: var(--muted);
+  margin: 20px 0; position: relative;
+}
+.setup-divider::before {
+  content: ''; position: absolute; top: 50%; left: 0; right: 0;
+  height: 1px; background: var(--border);
+}
+.setup-divider span { background: white; padding: 0 12px; position: relative; }
+.slide-url-row { display: flex; gap: 8px; }
+.slide-url-row .setup-input { flex: 1; }
+.slide-url-row button {
+  background: var(--teal-light); color: var(--teal); border: 1.5px solid var(--border);
+  border-radius: 10px; padding: 0 14px; font-size: 13px; font-weight: 500;
+  cursor: pointer; font-family: 'DM Sans', sans-serif; white-space: nowrap;
+  transition: all 0.15s;
+}
+.slide-url-row button:hover { background: var(--teal); color: white; border-color: var(--teal); }
+
+.auth-status {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px; border-radius: 10px; font-size: 13px;
+  margin-bottom: 20px; font-weight: 500;
+}
+.auth-status.connected { background: #d4f5ed; color: #047857; }
+.auth-status.disconnected { background: #fff3cd; color: #856404; }
+.auth-dot { width: 8px; height: 8px; border-radius: 50%; }
+.auth-status.connected .auth-dot { background: #047857; }
+.auth-status.disconnected .auth-dot { background: #f59e0b; }
+
+/* ── MAIN APP ── */
+header {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 12px 24px; display: flex; align-items: center; gap: 16px; flex-shrink: 0;
+}
+.logo { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--teal); letter-spacing: -0.5px; }
+.logo span { color: var(--pink); }
+.header-pipe { width: 1px; height: 20px; background: var(--border); }
+.header-slide-info { font-size: 13px; color: var(--muted); }
+.header-slide-info strong { color: var(--text); font-weight: 600; }
+.header-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.user-chip {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 20px; padding: 5px 12px 5px 5px; font-size: 12px; color: var(--muted);
+}
+.user-avatar {
+  width: 24px; height: 24px; border-radius: 50%; background: var(--teal);
+  color: white; font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.open-slides-btn {
+  background: white; border: 1.5px solid var(--border); color: var(--text);
+  padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 500;
+  cursor: pointer; font-family: 'DM Sans', sans-serif;
+  display: flex; align-items: center; gap: 7px; transition: all 0.15s;
+  text-decoration: none;
+}
+.open-slides-btn:hover { border-color: var(--teal); color: var(--teal); }
+.apply-btn {
+  background: var(--teal); color: white; border: none;
+  padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600;
+  cursor: pointer; font-family: 'DM Sans', sans-serif;
+  display: flex; align-items: center; gap: 7px; transition: background 0.2s;
+}
+.apply-btn:hover { background: var(--teal-dark); }
+.apply-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.main { display: flex; flex: 1; overflow: hidden; }
+
+/* SIDEBAR */
+.sidebar {
+  width: 210px; background: var(--surface); border-right: 1px solid var(--border);
+  overflow-y: auto; flex-shrink: 0; padding: 16px 10px;
+}
+.sidebar-label {
+  font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+  color: var(--muted); padding: 0 6px; margin-bottom: 10px;
+}
+.slide-item {
+  display: flex; align-items: flex-start; gap: 9px;
+  padding: 9px 10px; border-radius: 9px; cursor: pointer;
+  transition: background 0.15s; margin-bottom: 2px; position: relative;
+}
+.slide-item:hover { background: var(--teal-light); }
+.slide-item.current { background: var(--teal-light); }
+.slide-dot {
+  width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
+  background: var(--border); margin-top: 4px;
+}
+.slide-item.done .slide-dot { background: var(--mint); }
+.slide-item.current .slide-dot { background: var(--teal); box-shadow: 0 0 0 3px rgba(2,128,144,0.2); }
+.slide-item.skip .slide-dot { background: #d1d5db; }
+.slide-item-info { flex: 1; min-width: 0; }
+.slide-item-num { font-size: 10px; color: var(--muted); font-weight: 500; }
+.slide-item-text { font-size: 12px; color: var(--text); line-height: 1.3; }
+.slide-badge {
+  font-size: 9px; padding: 2px 5px; border-radius: 4px; font-weight: 600;
+  letter-spacing: 0.3px; flex-shrink: 0; margin-top: 2px;
+}
+.badge-fixed { background: #f1f5f9; color: #94a3b8; }
+.badge-edit { background: var(--teal-light); color: var(--teal); }
+.badge-done { background: #d4f5ed; color: #047857; }
+.badge-skip { background: #f8fafc; color: #94a3b8; }
+.badge-opt { background: #fef3c7; color: #d97706; }
+
+/* CHAT */
+.chat-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.slide-header {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 12px 20px; display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+}
+.slide-badge-big {
+  background: var(--teal); color: white; font-weight: 700; font-size: 13px;
+  min-width: 32px; height: 32px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center; padding: 0 8px;
+}
+.slide-header-info { flex: 1; }
+.slide-header-title { font-weight: 600; font-size: 14px; }
+.slide-header-desc { font-size: 12px; color: var(--muted); margin-top: 1px; }
+.nav-row { display: flex; gap: 7px; align-items: center; }
+.nav-btn {
+  background: white; border: 1.5px solid var(--border); color: var(--text);
+  padding: 6px 12px; border-radius: 7px; font-size: 12px; font-weight: 500;
+  cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.15s;
+}
+.nav-btn:hover { border-color: var(--teal); color: var(--teal); }
+.nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.nav-btn.primary { background: var(--teal); color: white; border-color: var(--teal); }
+.nav-btn.primary:hover { background: var(--teal-dark); }
+.skip-link {
+  font-size: 12px; color: var(--muted); cursor: pointer; text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.skip-link:hover { color: var(--teal); }
+
+.messages {
+  flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 14px;
+}
+.msg { display: flex; gap: 10px; max-width: 720px; }
+.msg.user { flex-direction: row-reverse; align-self: flex-end; }
+.msg-avatar {
+  width: 30px; height: 30px; border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; flex-shrink: 0;
+}
+.msg.assistant .msg-avatar { background: var(--teal); color: white; font-family: 'DM Serif Display', serif; font-size: 15px; }
+.msg.user .msg-avatar { background: var(--pink); color: white; font-size: 10px; font-weight: 700; }
+.msg-bubble {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 12px 15px;
+  font-size: 13.5px; line-height: 1.65; box-shadow: var(--shadow);
+}
+.msg.user .msg-bubble { background: var(--teal); color: white; border-color: var(--teal); }
+.msg-bubble p + p { margin-top: 8px; }
+.msg-bubble strong { font-weight: 600; }
+.msg-bubble ul { padding-left: 16px; margin: 6px 0; }
+.msg-bubble li { margin-bottom: 3px; }
+
+.apply-card {
+  background: linear-gradient(135deg, #e0f4f7 0%, #d4f5ed 100%);
+  border: 1px solid #b2e8e0; border-radius: 10px; padding: 14px 16px; margin-top: 8px;
+}
+.apply-card-title { font-weight: 600; font-size: 13px; color: var(--teal-dark); margin-bottom: 10px; display: flex; align-items: center; gap: 7px; }
+.apply-card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.apply-action-btn {
+  padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600;
+  cursor: pointer; border: none; font-family: 'DM Sans', sans-serif; transition: all 0.15s;
+}
+.apply-action-btn.primary { background: var(--teal); color: white; }
+.apply-action-btn.primary:hover { background: var(--teal-dark); }
+.apply-action-btn.secondary { background: white; color: var(--text); border: 1.5px solid var(--border); }
+.apply-action-btn.secondary:hover { border-color: var(--teal); color: var(--teal); }
+.apply-action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.typing-wrap { display: flex; gap: 10px; }
+.typing-bubble {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px 16px; display: flex; gap: 5px; align-items: center;
+}
+.tdot {
+  width: 7px; height: 7px; background: var(--teal); border-radius: 50%;
+  animation: tdot 1.2s infinite; opacity: 0.4;
+}
+.tdot:nth-child(2) { animation-delay: 0.18s; }
+.tdot:nth-child(3) { animation-delay: 0.36s; }
+@keyframes tdot { 0%,60%,100%{transform:translateY(0);opacity:0.4} 30%{transform:translateY(-5px);opacity:1} }
+
+.fixed-notice {
+  background: #f8fafc; border: 1px dashed var(--border); border-radius: 10px;
+  padding: 13px 16px; font-size: 13px; color: var(--muted);
+  display: flex; align-items: center; gap: 10px;
+}
+
+.input-row {
+  padding: 14px 20px; background: var(--surface); border-top: 1px solid var(--border);
+  display: flex; gap: 9px; align-items: flex-end; flex-shrink: 0;
+}
+textarea {
+  flex: 1; border: 1.5px solid var(--border); border-radius: 10px;
+  padding: 10px 13px; font-family: 'DM Sans', sans-serif; font-size: 14px;
+  resize: none; outline: none; min-height: 42px; max-height: 130px;
+  color: var(--text); background: var(--bg); transition: border-color 0.2s; line-height: 1.5;
+}
+textarea:focus { border-color: var(--teal); background: white; }
+.send-btn {
+  background: var(--teal); color: white; border: none; border-radius: 10px;
+  width: 42px; height: 42px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0; transition: background 0.2s;
+}
+.send-btn:hover { background: var(--teal-dark); }
+.send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.status-bar { text-align: center; font-size: 11px; color: var(--muted); padding: 3px 0; background: var(--surface); }
+
+/* RIGHT PANEL */
+.right-panel {
+  width: 290px; border-left: 1px solid var(--border); background: white;
+  overflow-y: auto; flex-shrink: 0; display: flex; flex-direction: column;
+}
+.panel-section { padding: 16px; border-bottom: 1px solid var(--border); }
+.panel-title { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+.slides-preview-link {
+  display: flex; align-items: center; gap: 9px; padding: 10px 12px;
+  background: var(--bg); border-radius: 9px; text-decoration: none; color: var(--text);
+  font-size: 13px; font-weight: 500; transition: background 0.15s; border: 1px solid var(--border);
+}
+.slides-preview-link:hover { background: var(--teal-light); border-color: var(--teal); }
+.slides-icon { font-size: 18px; }
+.slides-preview-info { flex: 1; min-width: 0; }
+.slides-name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.slides-sub { font-size: 11px; color: var(--muted); }
+
+.data-field { margin-bottom: 10px; }
+.data-key { font-size: 10px; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase; color: var(--teal); margin-bottom: 3px; }
+.data-val { font-size: 12px; color: var(--text); line-height: 1.5; }
+.data-val.empty { color: #c0cfd5; font-style: italic; font-size: 12px; }
+
+.progress-section { padding: 14px 16px; }
+.prog-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+.prog-bar { height: 4px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.prog-fill { height: 100%; background: linear-gradient(90deg, var(--teal), var(--mint)); transition: width 0.5s; }
+.apply-all-btn {
+  width: 100%; margin-top: 14px; background: var(--teal); color: white;
+  border: none; border-radius: 9px; padding: 11px; font-family: 'DM Sans', sans-serif;
+  font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.apply-all-btn:hover { background: var(--teal-dark); }
+.apply-all-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: #1a2b30; color: white; padding: 12px 20px; border-radius: 10px;
+  font-size: 13px; font-weight: 500; z-index: 999; opacity: 0;
+  transition: opacity 0.3s; pointer-events: none; display: flex; align-items: center; gap: 8px;
+}
+.toast.show { opacity: 1; }
+.toast.success { background: #047857; }
+.toast.error { background: #dc2626; }
+
+@media (max-width: 900px) { .right-panel { display: none; } }
+@media (max-width: 640px) { .sidebar { width: 52px; } .slide-item-info, .slide-badge { display: none; } }
+</style>
+</head>
+<body>
+
+<!-- ══════════════ SETUP SCREEN ══════════════ -->
+<div id="setupScreen">
+  <div class="setup-card">
+    <div class="setup-logo">ADAP<span>SYS</span>_</div>
+    <div class="setup-tagline">Asistente de propuestas comerciales · Google Slides</div>
+
+    <!-- Auth status -->
+    <div class="auth-status disconnected" id="authStatus">
+      <div class="auth-dot"></div>
+      <span id="authStatusText">No conectado con Google</span>
+    </div>
+
+    <!-- Step 1: Google OAuth -->
+    <div class="setup-step">
+      <div class="setup-label">1 · Cuenta Google</div>
+      <button class="setup-btn" id="connectGoogleBtn" onclick="startOAuth()">
+        <svg class="google-icon" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        Conectar con Google
+      </button>
+      <div class="setup-hint" style="margin-top:8px">
+        Necesitas un <strong>Client ID de OAuth</strong>. 
+        <a href="#" onclick="showClientIdHelp(); return false;">¿Cómo obtenerlo?</a>
+      </div>
+    </div>
+
+    <!-- Client ID field (hidden initially) -->
+    <div class="setup-step" id="clientIdStep" style="display:none">
+      <div class="setup-label">Client ID de Google Cloud</div>
+      <input type="text" class="setup-input" id="clientIdInput"
+        placeholder="123456789-abc...apps.googleusercontent.com"
+        oninput="saveClientId(this.value)">
+      <div class="setup-hint">
+        Desde <a href="https://console.cloud.google.com/apis/credentials" target="_blank">Google Cloud Console</a>
+        → Credenciales → tu app OAuth → Client ID
+      </div>
+    </div>
+
+    <div class="setup-divider"><span>luego</span></div>
+
+    <!-- Step 2: Slide URL -->
+    <div class="setup-step">
+      <div class="setup-label">2 · URL de tu presentación en Google Slides</div>
+      <div class="slide-url-row">
+        <input type="text" class="setup-input" id="slideUrlInput"
+          placeholder="https://docs.google.com/presentation/d/..."
+          oninput="saveSlideUrl(this.value)">
+        <button onclick="validateSlideUrl()">Verificar</button>
+      </div>
+      <div class="setup-hint" id="slideUrlHint">Pega la URL de tu template de propuestas en Google Slides.</div>
+    </div>
+
+    <button class="setup-btn" id="startBtn" onclick="startApp()" disabled>
+      Comenzar →
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════ MAIN APP ══════════════ -->
+<header id="appHeader" style="display:none">
+  <div class="logo">ADAP<span>SYS</span>_</div>
+  <div class="header-pipe"></div>
+  <div class="header-slide-info" id="headerSlideInfo">Lámina <strong>1</strong> de 8</div>
+  <div class="header-right">
+    <div class="user-chip">
+      <div class="user-avatar" id="userAvatar">?</div>
+      <span id="userName">—</span>
+    </div>
+    <a class="open-slides-btn" id="openSlidesLink" href="#" target="_blank">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
+      Abrir en Slides
+    </a>
+  </div>
+</header>
+
+<div class="main" id="appMain" style="display:none">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-label">Láminas</div>
+    <div id="slideList"></div>
+  </div>
+
+  <!-- CHAT -->
+  <div class="chat-area">
+    <div class="slide-header">
+      <div class="slide-badge-big" id="slideBadge">1</div>
+      <div class="slide-header-info">
+        <div class="slide-header-title" id="slideTitle">—</div>
+        <div class="slide-header-desc" id="slideDesc">—</div>
+      </div>
+      <div class="nav-row">
+        <button class="nav-btn" id="prevBtn" onclick="goSlide(-1)" disabled>←</button>
+        <span class="skip-link" id="skipLink" onclick="skipSlide()" style="display:none">Omitir</span>
+        <button class="nav-btn primary" id="nextBtn" onclick="goSlide(1)">Siguiente →</button>
+      </div>
+    </div>
+
+    <div class="messages" id="messages"></div>
+
+    <div class="input-row">
+      <textarea id="userInput" placeholder="Escribe tu respuesta…" rows="1"
+        onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z"/></svg>
+      </button>
+    </div>
+    <div class="status-bar" id="statusBar"></div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <div class="panel-section">
+      <div class="panel-title">Presentación</div>
+      <a class="slides-preview-link" id="panelSlidesLink" href="#" target="_blank">
+        <span class="slides-icon">📊</span>
+        <div class="slides-preview-info">
+          <div class="slides-name" id="panelSlidesName">Template de propuesta</div>
+          <div class="slides-sub">Google Slides · <span id="panelSlidesStatus">sin cambios</span></div>
+        </div>
+      </a>
+    </div>
+    <div class="panel-section" style="flex:1; overflow-y:auto">
+      <div class="panel-title">Contenido recopilado</div>
+      <div id="panelData"><div class="data-val empty">Aún no hay datos</div></div>
+    </div>
+    <div class="progress-section">
+      <div class="prog-label">
+        <span>Progreso</span>
+        <span id="progText">0 / 5</span>
+      </div>
+      <div class="prog-bar"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+      <button class="apply-all-btn" id="applyAllBtn" onclick="applyAllToSlides()" disabled>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        Aplicar todo en Google Slides
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- ══════════════ HELP MODAL ══════════════ -->
+<div id="helpModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:none;align-items:center;justify-content:center">
+  <div style="background:white;border-radius:16px;padding:36px;max-width:480px;width:90%;position:relative">
+    <button onclick="document.getElementById('helpModal').style.display='none'"
+      style="position:absolute;top:14px;right:14px;background:none;border:none;font-size:20px;cursor:pointer;color:#6b8c94">✕</button>
+    <h3 style="font-size:17px;font-weight:700;margin-bottom:16px;color:var(--teal)">Cómo obtener el Client ID de Google</h3>
+    <ol style="font-size:13px;line-height:1.8;padding-left:18px;color:var(--text)">
+      <li>Ve a <a href="https://console.cloud.google.com" target="_blank" style="color:var(--teal)">console.cloud.google.com</a></li>
+      <li>Crea un proyecto nuevo (ej: "Adapsys Propuestas")</li>
+      <li><strong>APIs y servicios → Biblioteca</strong> → activa <em>Google Slides API</em> y <em>Google Drive API</em></li>
+      <li><strong>APIs y servicios → Pantalla de consentimiento OAuth</strong> → tipo "Externo", completa nombre y email</li>
+      <li><strong>Credenciales → Crear credenciales → ID de cliente OAuth 2.0</strong></li>
+      <li>Tipo: <strong>Aplicación web</strong></li>
+      <li>Orígenes autorizados: agrega <code style="background:#f1f5f9;padding:1px 5px;border-radius:4px">http://localhost:3000</code> y tu dominio de Vercel</li>
+      <li>Copia el <strong>ID de cliente</strong> y pégalo aquí</li>
+    </ol>
+    <button onclick="document.getElementById('clientIdStep').style.display='block';document.getElementById('helpModal').style.display='none'"
+      style="margin-top:20px;background:var(--teal);color:white;border:none;border-radius:9px;padding:10px 20px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer">
+      Tengo mi Client ID →
+    </button>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// CONFIG — edita estas dos líneas
+// ══════════════════════════════════════════
+let GOOGLE_CLIENT_ID = localStorage.getItem('adapsys_client_id') || '';
+const GOOGLE_SCOPES   = 'https://www.googleapis.com/auth/presentations https://www.googleapis.com/auth/drive.readonly';
+const REDIRECT_URI    = window.location.origin + window.location.pathname;
+
+// Anthropic API key (se pide si no está guardada)
+let ANTHROPIC_KEY = localStorage.getItem('adapsys_anthropic_key') || '';
+
+// ══════════════════════════════════════════
+// SLIDES DEFINITION
+// ══════════════════════════════════════════
+const SLIDES = [
+  { num:1, title:'Portada Adapsys',      desc:'Se mantiene igual siempre',              type:'fixed'    },
+  { num:2, title:'Portada de propuesta', desc:'Título, fecha y nombre del cliente',      type:'edit',
+    fields:['titulo','fecha','nombreCliente'] },
+  { num:3, title:'Notas previas',        desc:'Solo cambia el bullet de origen',         type:'edit',
+    fields:['origen'] },
+  { num:4, title:'Tabla de contenidos',  desc:'Números de página si cambian',            type:'edit',
+    fields:['paginas'] },
+  { num:5, title:'Intro Contexto',       desc:'Se mantiene igual',                       type:'fixed'    },
+  { num:6, title:'El momento actual',    desc:'Contexto actual del cliente (bullets)',   type:'edit',
+    fields:['bullets'] },
+  { num:7, title:'Aspiración A → B',     desc:'Estado actual y aspiración (opcional)',   type:'optional',
+    fields:['incluir','estadoA','estadoB'] },
+  { num:8, title:'Desafíos adaptativos', desc:'4 grandes desafíos del cliente',          type:'edit',
+    fields:['desafio1','desc1','desafio2','desc2','desafio3','desc3','desafio4','desc4'] },
+];
+
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+let currentSlide = 0;
+let conversations = SLIDES.map(() => []);
+let slideStatus   = SLIDES.map(() => 'pending');
+let allData       = {};
+let googleToken   = null;
+let presentationId = null;
+let userEmail     = '';
+let isLoading     = false;
+let appliedCount  = 0;
+
+// ══════════════════════════════════════════
+// SETUP / AUTH
+// ══════════════════════════════════════════
+function showClientIdHelp() {
+  document.getElementById('helpModal').style.display = 'flex';
+}
+
+function saveClientId(val) {
+  GOOGLE_CLIENT_ID = val.trim();
+  localStorage.setItem('adapsys_client_id', GOOGLE_CLIENT_ID);
+}
+
+function saveSlideUrl(val) {
+  localStorage.setItem('adapsys_slide_url', val.trim());
+  checkCanStart();
+}
+
+function validateSlideUrl() {
+  const url = document.getElementById('slideUrlInput').value.trim();
+  const match = url.match(/\/presentation\/d\/([a-zA-Z0-9_-]+)/);
+  if (match) {
+    presentationId = match[1];
+    localStorage.setItem('adapsys_pres_id', presentationId);
+    document.getElementById('slideUrlHint').textContent = '✓ ID: ' + presentationId;
+    document.getElementById('slideUrlHint').style.color = '#047857';
+    checkCanStart();
+  } else {
+    document.getElementById('slideUrlHint').textContent = 'URL inválida. Asegúrate de pegar la URL completa de Google Slides.';
+    document.getElementById('slideUrlHint').style.color = '#dc2626';
+  }
+}
+
+function checkCanStart() {
+  const hasAuth = !!googleToken;
+  const hasPres = !!presentationId || !!localStorage.getItem('adapsys_pres_id');
+  document.getElementById('startBtn').disabled = !(hasAuth && hasPres);
+}
+
+// ── OAuth PKCE ──
+async function generatePKCE() {
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  const verifier = btoa(String.fromCharCode(...array)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+  const data = new TextEncoder().encode(verifier);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  const challenge = btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+  return { verifier, challenge };
+}
+
+async function startOAuth() {
+  if (!GOOGLE_CLIENT_ID) {
+    document.getElementById('clientIdStep').style.display = 'block';
+    document.getElementById('clientIdInput').focus();
+    showToast('Primero ingresa tu Client ID de Google', 'error');
+    return;
+  }
+  const { verifier, challenge } = await generatePKCE();
+  sessionStorage.setItem('pkce_verifier', verifier);
+  const state = Math.random().toString(36).slice(2);
+  sessionStorage.setItem('oauth_state', state);
+
+  const params = new URLSearchParams({
+    client_id: GOOGLE_CLIENT_ID,
+    redirect_uri: REDIRECT_URI,
+    response_type: 'code',
+    scope: GOOGLE_SCOPES,
+    code_challenge: challenge,
+    code_challenge_method: 'S256',
+    state,
+    access_type: 'offline',
+    prompt: 'consent',
+  });
+  window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params;
+}
+
+async function handleOAuthCallback() {
+  const params = new URLSearchParams(window.location.search);
+  const code  = params.get('code');
+  const state = params.get('state');
+  if (!code) return;
+  if (state !== sessionStorage.getItem('oauth_state')) {
+    showToast('Error de seguridad OAuth', 'error'); return;
+  }
+  // Clean URL
+  window.history.replaceState({}, '', window.location.pathname);
+
+  // Exchange code for token
+  // NOTE: PKCE token exchange requires a backend in production.
+  // For demo / localhost, we use the implicit fallback below.
+  // For Vercel, deploy a small /api/token endpoint (see README).
+  const verifier = sessionStorage.getItem('pkce_verifier');
+  try {
+    const res = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code, client_id: GOOGLE_CLIENT_ID,
+        redirect_uri: REDIRECT_URI,
+        code_verifier: verifier,
+        grant_type: 'authorization_code',
+      })
+    });
+    const data = await res.json();
+    if (data.access_token) {
+      googleToken = data.access_token;
+      sessionStorage.setItem('google_token', googleToken);
+      await fetchUserInfo();
+      updateAuthUI(true);
+    } else {
+      // Fallback: token exchange needs backend — show instructions
+      showToast('Token exchange necesita backend. Ver README.', 'error');
+      showBackendNote();
+    }
+  } catch(e) {
+    showToast('Error al obtener token: ' + e.message, 'error');
+  }
+}
+
+async function fetchUserInfo() {
+  try {
+    const r = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: { Authorization: 'Bearer ' + googleToken }
+    });
+    const u = await r.json();
+    userEmail = u.email || '';
+    document.getElementById('userName').textContent = userEmail.split('@')[0];
+    document.getElementById('userAvatar').textContent = (userEmail[0]||'?').toUpperCase();
+  } catch(e) {}
+}
+
+function updateAuthUI(connected) {
+  const status = document.getElementById('authStatus');
+  const text   = document.getElementById('authStatusText');
+  status.className = 'auth-status ' + (connected ? 'connected' : 'disconnected');
+  text.textContent = connected ? ('Conectado como ' + (userEmail || 'usuario')) : 'No conectado con Google';
+  document.getElementById('connectGoogleBtn').textContent = connected ? '✓ Conectado' : 'Conectar con Google';
+  document.getElementById('connectGoogleBtn').disabled = connected;
+  checkCanStart();
+}
+
+function showBackendNote() {
+  // Show note that a /api/token endpoint is needed
+  const el = document.createElement('div');
+  el.style.cssText = 'background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:12px 14px;font-size:13px;margin-top:12px;line-height:1.6';
+  el.innerHTML = `<strong>⚠ Para Vercel:</strong> El intercambio de token OAuth requiere un endpoint backend.
+    Descarga el archivo <code>api/token.js</code> del ZIP y despliégalo junto con este HTML.
+    <a href="#" onclick="useImplicitFlow();return false" style="color:var(--teal);font-weight:600">Usar flujo implícito en su lugar (solo localhost)</a>`;
+  document.querySelector('.setup-card').appendChild(el);
+}
+
+function useImplicitFlow() {
+  // Implicit flow — NOT for production, but fine for localhost demo
+  const params = new URLSearchParams({
+    client_id: GOOGLE_CLIENT_ID,
+    redirect_uri: REDIRECT_URI,
+    response_type: 'token',
+    scope: GOOGLE_SCOPES,
+  });
+  window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params;
+}
+
+function handleImplicitCallback() {
+  const hash = new URLSearchParams(window.location.hash.slice(1));
+  const token = hash.get('access_token');
+  if (!token) return;
+  window.history.replaceState({}, '', window.location.pathname);
+  googleToken = token;
+  sessionStorage.setItem('google_token', token);
+  fetchUserInfo().then(() => updateAuthUI(true));
+}
+
+function startApp() {
+  // Ask for Anthropic key if not set
+  if (!ANTHROPIC_KEY) {
+    const key = prompt('Ingresa tu API key de Anthropic (claude.ai → Settings → API):');
+    if (!key) return;
+    ANTHROPIC_KEY = key.trim();
+    localStorage.setItem('adapsys_anthropic_key', ANTHROPIC_KEY);
+  }
+  presentationId = presentationId || localStorage.getItem('adapsys_pres_id');
+  const url = document.getElementById('slideUrlInput').value || localStorage.getItem('adapsys_slide_url') || '';
+  document.getElementById('setupScreen').style.display = 'none';
+  document.getElementById('appHeader').style.display = 'flex';
+  document.getElementById('appMain').style.display = 'flex';
+  document.getElementById('openSlidesLink').href = url;
+  document.getElementById('panelSlidesLink').href = url;
+  const name = url.split('/').filter(Boolean).slice(-2,-1)[0] || 'Mi presentación';
+  document.getElementById('panelSlidesName').textContent = 'Template de propuesta';
+  initApp();
+}
+
+// ══════════════════════════════════════════
+// APP LOGIC
+// ══════════════════════════════════════════
+function initApp() {
+  renderSidebar();
+  setSlide(0);
+}
+
+function renderSidebar() {
+  document.getElementById('slideList').innerHTML = SLIDES.map((s,i) => {
+    const st = slideStatus[i];
+    const badgeClass = s.type==='fixed' ? 'badge-fixed' : st==='done' ? 'badge-done' : st==='skip' ? 'badge-skip' : s.type==='optional' ? 'badge-opt' : 'badge-edit';
+    const badgeText  = s.type==='fixed' ? 'Fija' : st==='done' ? '✓' : st==='skip' ? 'Omitida' : s.type==='optional' ? 'Opcional' : 'Editar';
+    return `<div class="slide-item ${st==='done'||st==='skip'?'done':''} ${i===currentSlide?'current':''}" onclick="setSlide(${i})">
+      <div class="slide-dot"></div>
+      <div class="slide-item-info">
+        <div class="slide-item-num">Lámina ${s.num}</div>
+        <div class="slide-item-text">${s.title}</div>
+      </div>
+      <span class="slide-badge ${badgeClass}">${badgeText}</span>
+    </div>`;
+  }).join('');
+}
+
+function setSlide(idx) {
+  currentSlide = idx;
+  const s = SLIDES[idx];
+  document.getElementById('slideBadge').textContent = s.num;
+  document.getElementById('slideTitle').textContent = s.title;
+  document.getElementById('slideDesc').textContent  = s.desc;
+  document.getElementById('headerSlideInfo').innerHTML = `Lámina <strong>${s.num}</strong> de ${SLIDES.length}`;
+  document.getElementById('prevBtn').disabled = idx === 0;
+  document.getElementById('nextBtn').disabled = idx === SLIDES.length - 1;
+  document.getElementById('skipLink').style.display = s.type === 'optional' ? 'inline' : 'none';
+  renderMessages();
+  renderSidebar();
+  if (conversations[idx].length === 0) startSlideConversation(idx);
+  updateProgress();
+}
+
+function goSlide(d) { const n=currentSlide+d; if(n>=0&&n<SLIDES.length) setSlide(n); }
+function skipSlide() { slideStatus[currentSlide]='skip'; renderSidebar(); updateProgress(); if(currentSlide<SLIDES.length-1) goSlide(1); }
+
+function renderMessages() {
+  const c = document.getElementById('messages');
+  c.innerHTML = '';
+  conversations[currentSlide].forEach(m => c.appendChild(makeMsgEl(m.role, m.content)));
+  c.scrollTop = c.scrollHeight;
+}
+
+function makeMsgEl(role, html) {
+  const d = document.createElement('div');
+  d.className = 'msg ' + role;
+  const av = document.createElement('div');
+  av.className = 'msg-avatar';
+  av.textContent = role==='assistant' ? 'A' : 'Tú';
+  const b = document.createElement('div');
+  b.className = 'msg-bubble';
+  b.innerHTML = html;
+  d.appendChild(av); d.appendChild(b);
+  return d;
+}
+
+function addMsg(role, html) {
+  conversations[currentSlide].push({role, html});
+  const c = document.getElementById('messages');
+  c.appendChild(makeMsgEl(role, html));
+  c.scrollTop = c.scrollHeight;
+}
+
+function showTyping() {
+  const c = document.getElementById('messages');
+  const d = document.createElement('div');
+  d.id = 'typing'; d.className = 'typing-wrap';
+  d.innerHTML = `<div class="msg-avatar" style="width:30px;height:30px;border-radius:7px;background:var(--teal);color:white;display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:15px;flex-shrink:0">A</div>
+    <div class="typing-bubble"><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div></div>`;
+  c.appendChild(d); c.scrollTop = c.scrollHeight;
+}
+function hideTyping() { const e=document.getElementById('typing'); if(e) e.remove(); }
+
+// ══ CONVERSATION ══
+async function startSlideConversation(idx) {
+  const s = SLIDES[idx];
+  if (s.type === 'fixed') {
+    addMsg('assistant', `<div class="fixed-notice">🔒 Esta lámina es <strong>estándar</strong> y no requiere cambios. Avanza a la siguiente.</div>`);
+    slideStatus[idx] = 'done'; renderSidebar(); updateProgress(); return;
+  }
+  setLoading(true); showTyping();
+  try {
+    const resp = await callClaude([{role:'user', content: initPrompt(idx)}], sysPrompt());
+    hideTyping(); addMsg('assistant', fmt(resp));
+  } catch(e) { hideTyping(); addMsg('assistant', 'Error al conectar con Claude. Verifica la API key.'); }
+  setLoading(false);
+}
+
+async function sendMessage() {
+  const inp = document.getElementById('userInput');
+  const txt = inp.value.trim();
+  if (!txt || isLoading) return;
+  inp.value = ''; autoResize(inp);
+  addMsg('user', esc(txt));
+  setLoading(true); showTyping();
+
+  // Build history for API (last 12 turns, text only)
+  const hist = conversations[currentSlide].slice(-12).map(m => ({
+    role: m.role==='assistant' ? 'assistant' : 'user',
+    content: stripHtml(m.html||'')
+  }));
+
+  try {
+    const resp = await callClaude(hist, sysPrompt());
+    hideTyping();
+    const ready = resp.includes('[LISTO]');
+    const clean = resp.replace('[LISTO]','').trim();
+    addMsg('assistant', fmt(clean));
+    if (ready) {
+      await extractData(currentSlide, hist.concat([{role:'assistant',content:clean}]));
+      showApplyCard();
+    }
+  } catch(e) { hideTyping(); addMsg('assistant', 'Error. Intenta de nuevo.'); }
+  setLoading(false);
+}
+
+async function extractData(idx, hist) {
+  const s = SLIDES[idx];
+  if (s.type==='fixed') return;
+  const prompt = `De esta conversación extrae la info para la lámina ${s.num} (${s.title}).
+Devuelve SOLO JSON con estos campos: ${JSON.stringify(s.fields||[])}.
+Conversación:\n${hist.map(m=>`${m.role}: ${m.content}`).join('\n')}`;
+  try {
+    const r = await callClaude([{role:'user',content:prompt}],
+      'Extractor de datos. Devuelve SOLO JSON válido sin markdown ni explicaciones.');
+    const j = JSON.parse(r.replace(/```json|```/g,'').trim());
+    allData['slide'+(idx+1)] = j;
+    slideStatus[idx] = 'done';
+    renderSidebar(); renderPanel(); updateProgress();
+  } catch(e) { console.error('extractData error', e); }
+}
+
+function showApplyCard() {
+  const html = `<div class="apply-card">
+    <div class="apply-card-title">✓ Información lista para esta lámina</div>
+    <div class="apply-card-actions">
+      <button class="apply-action-btn primary" onclick="applySingleSlide(${currentSlide})">Aplicar en Slides ahora</button>
+      <button class="apply-action-btn secondary" onclick="goSlide(1)">Siguiente lámina →</button>
+    </div>
+  </div>`;
+  addMsg('assistant', html);
+}
+
+// ══ GOOGLE SLIDES API ══
+async function applySingleSlide(idx) {
+  if (!googleToken) { showToast('Conéctate primero con Google', 'error'); return; }
+  const data = allData['slide'+(idx+1)];
+  if (!data) { showToast('No hay datos para esta lámina', 'error'); return; }
+  showToast('Aplicando cambios…', '');
+  try {
+    const requests = buildRequests(idx, data);
+    if (!requests.length) { showToast('No hay cambios para aplicar', ''); return; }
+    await batchUpdate(requests);
+    appliedCount++;
+    document.getElementById('panelSlidesStatus').textContent = `${appliedCount} cambio(s) aplicado(s)`;
+    showToast(`✓ Lámina ${SLIDES[idx].num} actualizada en Google Slides`, 'success');
+  } catch(e) {
+    showToast('Error al aplicar: ' + e.message, 'error');
+    console.error(e);
+  }
+}
+
+async function applyAllToSlides() {
+  if (!googleToken) { showToast('Conéctate primero con Google', 'error'); return; }
+  const btn = document.getElementById('applyAllBtn');
+  btn.disabled = true; btn.textContent = 'Aplicando…';
+  let allRequests = [];
+  for (let i=0; i<SLIDES.length; i++) {
+    const data = allData['slide'+(i+1)];
+    if (data) allRequests = allRequests.concat(buildRequests(i, data));
+  }
+  if (!allRequests.length) { showToast('No hay cambios que aplicar', ''); btn.disabled=false; btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Aplicar todo en Google Slides'; return; }
+  try {
+    await batchUpdate(allRequests);
+    showToast(`✓ ${allRequests.length} cambio(s) aplicados en Google Slides`, 'success');
+    document.getElementById('panelSlidesStatus').textContent = `${allRequests.length} cambios aplicados`;
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+  }
+  btn.disabled = false;
+  btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Aplicar todo en Google Slides';
+}
+
+// Build Google Slides API batchUpdate requests for each slide
+// Uses replaceAllText — safe, doesn't require knowing shape IDs
+function buildRequests(idx, data) {
+  const requests = [];
+  const slideNum = SLIDES[idx].num;
+
+  function replaceText(find, replace) {
+    if (!replace || !find) return;
+    requests.push({
+      replaceAllText: {
+        containsText: { text: find, matchCase: true },
+        replaceText: String(replace),
+        pageObjectIds: [] // empty = all slides; filter later if needed
+      }
+    });
+  }
+
+  if (slideNum === 2) {
+    replaceText('EQUIPO EJECUTIVO PARA LOS DESAFÍOS DEL FUTURO', (data.titulo||'').toUpperCase());
+    replaceText('xx | xx | xx', data.fecha || '');
+    replaceText('Logo cliente', data.nombreCliente || 'Logo cliente');
+  }
+
+  if (slideNum === 3 && data.origen) {
+    // Replace the origin sentence that contains "SNA" or similar
+    replaceText('La presente propuesta surge de conversaciones con miembros del Directorio y el secretario general de SNA.', data.origen);
+  }
+
+  if (slideNum === 6 && data.bullets) {
+    // Replace each existing bullet with new content
+    const existingBullets = [
+      'Historia que da confianza.',
+      'Actualmente cuenta con plantas en cinco países.',
+      'Definición de Propósito.',
+      'Estrategia.',
+    ];
+    const newLines = data.bullets.split('\n').filter(l=>l.trim()).map(l=>l.replace(/^[-•·*]\s*/,''));
+    // Replace first line markers
+    existingBullets.forEach((b,i) => {
+      if (newLines[i]) replaceText(b, newLines[i].split('.')[0] + '.');
+    });
+    // Also replace full placeholder text if it matches exactly
+    replaceText('Molymet nace en 1975', newLines[0]?.slice(newLines[0]?.indexOf('.')+1)?.trim() || '');
+  }
+
+  if (slideNum === 7) {
+    if (data.estadoA) {
+      const linesA = data.estadoA.split('\n').filter(l=>l.trim()).map(l=>l.replace(/^[-•·*]\s*/,''));
+      replaceText('Desde una organización enfocada en excelencia y rentabilidad', linesA[0] || '');
+      replaceText('Una organización que enfatiza la excelencia operacional y la rentabilidad de sus negocios.', linesA[1] || '');
+      replaceText('Una organización que cuenta con una estructura organizacional con enfoque matricial', linesA[2] || '');
+      replaceText('Sello de Liderazgo declarado, que asume grandes retos', linesA[3] || '');
+    }
+    if (data.estadoB) {
+      const linesB = data.estadoB.split('\n').filter(l=>l.trim()).map(l=>l.replace(/^[-•·*]\s*/,''));
+      replaceText('Hacia una organización ágil, simple y adaptativa que produce valor sostenible', linesB[0] || '');
+      replaceText('Una organización ágil y simple, que incorpora prácticas de agilismo empresarial', linesB[1] || '');
+      replaceText('Una organización que habilita escenarios para fortalecer la experimentación', linesB[2] || '');
+      replaceText('Un talento que moviliza el modelo de organización adaptativa', linesB[3] || '');
+    }
+  }
+
+  if (slideNum === 8) {
+    const origTitles = [
+      'Evolucionar la cultura organizacional',
+      'Ampliar la mirada',
+      'Tener una estrategia innovadora',
+      'Consolidar el modelo de negocio',
+    ];
+    [1,2,3,4].forEach(n => {
+      if (data['desafio'+n]) replaceText(origTitles[n-1], data['desafio'+n]);
+    });
+    // Replace lorem ipsum — all 4 paragraphs have same text, tricky
+    // Use a unique approach: replace by index isn't possible with replaceAllText
+    // Instead we replace one at a time and rely on the fact they're identical placeholder
+    // (In practice, all 4 lorem paragraphs are the same text, so replaceAllText replaces all)
+    // Better: instruct users to replace placeholder text in template with unique markers
+    if (data.desc1) replaceText('Lorem ipsum dolor sit amet, diam donec neque nisl nibh, ante rutrum proin cras dui ac cum, amet nunc dolor. Senectus urna justo, dis tristique purus commodo at. Donec nullam pede, non neque nit.', data.desc1);
+  }
+
+  return requests.filter(r => r.replaceAllText.replaceText !== undefined);
+}
+
+async function batchUpdate(requests) {
+  const res = await fetch(
+    `https://slides.googleapis.com/v1/presentations/${presentationId}:batchUpdate`,
+    {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + googleToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requests })
+    }
+  );
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error?.message || res.statusText);
+  }
+  return res.json();
+}
+
+// ══ CLAUDE API ══
+function sysPrompt() {
+  return `Eres el asistente de propuestas de Adapsys, consultora de liderazgo adaptativo.
+Ayudas a completar propuestas comerciales lámina por lámina, de forma conversacional.
+Sé conciso, profesional, en español. Haz preguntas específicas y claras.
+Cuando tengas TODA la información necesaria para la lámina actual, termina con [LISTO].
+No uses exceso de markdown. Bullets solo cuando sea necesario.`;
+}
+
+function initPrompt(idx) {
+  const prompts = [
+    '',
+    `Saluda brevemente y di que vas a ayudar a completar las primeras 8 láminas de la propuesta.
+     Pide: ¿Para qué cliente es esta propuesta? ¿Cuál es el nombre de la propuesta/proyecto?`,
+    `Estás en la lámina 2 "Portada de propuesta". Campos a completar:
+     - Título central (ej: "LIDERAZGO PARA LOS DESAFÍOS DEL FUTURO")
+     - Fecha de la propuesta
+     - Nombre del cliente (para el círculo inferior izquierdo)
+     Pide estos tres datos de forma natural.`,
+    `Lámina 3 "Notas previas". Solo cambia el bullet de Origen.
+     El texto actual dice "surge de conversaciones con el Directorio y secretario general de SNA."
+     Pregunta: ¿De dónde surgió esta propuesta? ¿Con quiénes tuvieron las conversaciones iniciales?`,
+    `Lámina 4 "Tabla de contenidos". Los números de página actuales son: Contexto 05, Sello metodológico 09, Plan de trabajo 14, Impacto esperado 20, Gestión del proyecto 25, Equipo 26, Valor 27, Casos de éxito 29, Acerca de Adapsys 35.
+     Pregunta si se mantienen iguales o si alguno cambia. Si no saben aún, pueden dejarlo igual.`,
+    `Pregunta de preparación para la siguiente lámina (Momento actual): 
+     ¿Puedes contarme brevemente sobre este cliente? Industria, tamaño, y qué los llevó a buscar a Adapsys ahora.`,
+    `Lámina 6 "El momento actual". Necesitas 3-5 bullets, cada uno con un título en negrita + descripción.
+     Pide que describa: historia/contexto del cliente, situación presente, y qué los motivó a buscar este apoyo.`,
+    `Lámina 7 "Aspiración A→B" (opcional). Esta lámina tiene estructura de dos columnas:
+     - LADO A (izquierda): cómo es la organización HOY (3-4 bullets)
+     - LADO B (derecha): cómo quiere ser DESPUÉS del proyecto (3-4 bullets)
+     Pregunta si van a incluir esta lámina. Si sí, pide los bullets de cada lado.`,
+    `Lámina 8 "Los desafíos para alcanzar la aspiración". Tiene exactamente 4 desafíos con título + descripción.
+     Pide que identifique los 4 principales retos adaptativos que enfrenta la organización, cada uno con nombre y 2-3 líneas de descripción.`,
+  ];
+  return prompts[idx+1] || `Ayuda a completar la lámina ${SLIDES[idx].num}: ${SLIDES[idx].title}`;
+}
+
+async function callClaude(messages, system) {
+  if (!ANTHROPIC_KEY) throw new Error('Sin API key de Anthropic');
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+    body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1000, system, messages })
+  });
+  if (!res.ok) throw new Error('Claude API error ' + res.status);
+  const d = await res.json();
+  return d.content[0].text;
+}
+
+// ══ UI HELPERS ══
+function renderPanel() {
+  const labels = {
+    titulo:'Título', fecha:'Fecha', nombreCliente:'Cliente',
+    origen:'Origen', paginas:'Páginas',
+    bullets:'Contexto del cliente',
+    estadoA:'Estado actual (A)', estadoB:'Aspiración (B)',
+    desafio1:'Desafío 1', desafio2:'Desafío 2', desafio3:'Desafío 3', desafio4:'Desafío 4',
+    desc1:'Desc. 1', desc2:'Desc. 2', desc3:'Desc. 3', desc4:'Desc. 4',
+  };
+  let html = '';
+  for (const [sk, fields] of Object.entries(allData)) {
+    const idx = parseInt(sk.replace('slide',''))-1;
+    const s = SLIDES[idx];
+    html += `<div style="margin-bottom:14px"><div class="data-key" style="margin-bottom:5px">Lámina ${s.num}: ${s.title}</div>`;
+    for (const [k,v] of Object.entries(fields)) {
+      if (v) html += `<div class="data-field"><div class="data-key">${labels[k]||k}</div><div class="data-val">${esc(String(v)).slice(0,120)}${String(v).length>120?'…':''}</div></div>`;
+    }
+    html += '</div>';
+  }
+  document.getElementById('panelData').innerHTML = html || '<div class="data-val empty">Aún no hay datos</div>';
+}
+
+function updateProgress() {
+  const editable = SLIDES.filter(s=>s.type!=='fixed').length;
+  const done = SLIDES.filter((s,i)=>s.type!=='fixed'&&(slideStatus[i]==='done'||slideStatus[i]==='skip')).length;
+  const pct = Math.round(done/editable*100);
+  document.getElementById('progFill').style.width = pct+'%';
+  document.getElementById('progText').textContent = `${done} / ${editable}`;
+  const allDone = SLIDES.every((s,i)=>s.type==='fixed'||slideStatus[i]==='done'||slideStatus[i]==='skip');
+  document.getElementById('applyAllBtn').disabled = !allDone || !googleToken;
+}
+
+function setLoading(v) {
+  isLoading = v;
+  document.getElementById('sendBtn').disabled = v;
+  document.getElementById('userInput').disabled = v;
+  document.getElementById('statusBar').textContent = v ? 'Claude está escribiendo…' : '';
+}
+
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast show ' + (type||'');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.className = 'toast', 3200);
+}
+
+function fmt(text) {
+  return text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g,'<em>$1</em>')
+    .replace(/\n\n/g,'</p><p style="margin-top:7px">')
+    .replace(/\n- /g,'<br>• ')
+    .replace(/\n/g,'<br>');
+}
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function stripHtml(s) { return s.replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim(); }
+function handleKey(e) { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();} }
+function autoResize(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,130)+'px'; }
+
+// ══ INIT ══
+// Restore session
+(function() {
+  const t = sessionStorage.getItem('google_token');
+  if (t) { googleToken = t; fetchUserInfo().then(()=>updateAuthUI(true)); }
+  const pid = localStorage.getItem('adapsys_pres_id');
+  if (pid) { presentationId = pid; }
+  const url = localStorage.getItem('adapsys_slide_url');
+  if (url) { document.getElementById('slideUrlInput').value = url; }
+  const cid = localStorage.getItem('adapsys_client_id');
+  if (cid) { document.getElementById('clientIdInput').value = cid; document.getElementById('clientIdStep').style.display='block'; }
+
+  // Handle OAuth callbacks
+  handleImplicitCallback();      // implicit flow (hash)
+  handleOAuthCallback();         // PKCE flow (search params)
+})();
+</script>
+</body>
+</html>
