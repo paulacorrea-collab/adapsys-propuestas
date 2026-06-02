@@ -1070,7 +1070,7 @@ async function callClaude(messages, system) {
       'anthropic-version': '2023-06-01',
       'anthropic-dangerous-direct-browser-access': 'true'
     },
-    body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1000, system, messages })
+    body: JSON.stringify({ model:'claude-sonnet-4-5', max_tokens:1000, system, messages })
   });
   if (!res.ok) throw new Error('Claude API error ' + res.status);
   const d = await res.json();
