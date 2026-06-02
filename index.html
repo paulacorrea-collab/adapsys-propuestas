@@ -952,20 +952,18 @@ function buildRequests(idx, data) {
   }
 
   if (slideNum === 6 && data.bullets) {
-    // Replace each existing bullet with new content
-    const existingBullets = [
-      'Historia que da confianza.',
-      'Actualmente cuenta con plantas en cinco países.',
-      'Definición de Propósito.',
-      'Estrategia.',
-    ];
-    const newLines = data.bullets.split('\n').filter(l=>l.trim()).map(l=>l.replace(/^[-•·*]\s*/,''));
-    // Replace first line markers
-    existingBullets.forEach((b,i) => {
-      if (newLines[i]) replaceText(b, newLines[i].split('.')[0] + '.');
+    const bulletsText = Array.isArray(data.bullets) ? data.bullets.join('\n') : String(data.bullets || '');
+    const newLines = bulletsText.split('\n').filter(l=>l.trim()).map(l=>l.replace(/^[-•·*]\s*/,''));
+    const titles = ['Historia que da confianza.','Actualmente cuenta con plantas en cinco países.','Definición de Propósito.','Estrategia.'];
+    const descPlaceholders = ['Molymet nace en 1975 y, luego de sentar las bases organizacionales, comienza en 1994 un proceso de internacionalización y expansión sostenida que la ha llevado a ser el principal procesador de concentrados de Molibdeno y Renio en el mundo.','Chile, México, Bélgica, Alemania y China, y oficinas comerciales en Inglaterra, China, Estados Unidos, Brasil, Perú y Chile.','Durante los años 2018 y 2019 Molymet construye su nuevo propósito, con una activa y amplia participación de la organización y su ecosistema. Durante el año 2020 ese Propósito se da a conocer a toda la organización y se forman influencers y líderes para ayudar a su activación e internalización.','En la estrategia definida por la empresa durante el año 2019 se decidió fortalecer y mantener su posición de liderazgo en "core business", a la vez que desarrollar nuevas oportunidades, poniendo énfasis en la sustentabilidad del negocio, las personas, la innovación y la excelencia.'];
+    newLines.forEach((line, i) => {
+      const parts = line.split(':');
+      const newTitle = (parts[0] || '').trim() + '.';
+      const newDesc = (parts.slice(1).join(':') || '').trim();
+      if (titles[i]) replaceText(titles[i], newTitle);
+      if (descPlaceholders[i] && newDesc) replaceText(descPlaceholders[i], newDesc);
     });
-    // Also replace full placeholder text if it matches exactly
-    replaceText('Molymet nace en 1975', newLines[0]?.slice(newLines[0]?.indexOf('.')+1)?.trim() || '');
+    if (data.ideaFuerza) replaceText('El Propósito recientemente \ndefinido debe expresarse ahora a través de Key-Purpose-Indicators que sean parte de la Estrategia de CLIENTE.', data.ideaFuerza);
   }
 
   if (slideNum === 7) {
