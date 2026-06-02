@@ -817,7 +817,7 @@ function hideTyping() { const e=document.getElementById('typing'); if(e) e.remov
 async function startSlideConversation(idx) {
   const s = SLIDES[idx];
   if (s.type === 'fixed') {
-    addMsg('assistant', `<div class="fixed-notice">🔒 Esta lámina es <strong>estándar</strong> y no requiere cambios. Avanza a la siguiente.</div>`);
+    addMsg('assistant', '<div class="fixed-notice">🔒 Esta lámina es <strong>estándar</strong> y no requiere cambios. Avanza a la siguiente.</div>');
     slideStatus[idx] = 'done'; renderSidebar(); updateProgress(); return;
   }
   setLoading(true); showTyping();
