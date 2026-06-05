@@ -979,20 +979,12 @@ function buildRequests(idx, data) {
   }
 
   if (slideNum === 7) {
-    if (data.estadoA) {
-      const linesA = data.estadoA.split('\n').filter(l=>l.trim()).map(l=>l.replace(/^[-•·*]\s*/,''));
-      replaceText('Desde una organización enfocada en excelencia y rentabilidad', linesA[0] || '');
-      replaceText('Una organización que enfatiza la excelencia operacional y la rentabilidad de sus negocios.', linesA[1] || '');
-      replaceText('Una organización que cuenta con una estructura organizacional con enfoque matricial', linesA[2] || '');
-      replaceText('Sello de Liderazgo declarado, que asume grandes retos', linesA[3] || '');
-    }
-    if (data.estadoB) {
-      const linesB = data.estadoB.split('\n').filter(l=>l.trim()).map(l=>l.replace(/^[-•·*]\s*/,''));
-      replaceText('Hacia una organización ágil, simple y adaptativa que produce valor sostenible', linesB[0] || '');
-      replaceText('Una organización ágil y simple, que incorpora prácticas de agilismo empresarial', linesB[1] || '');
-      replaceText('Una organización que habilita escenarios para fortalecer la experimentación', linesB[2] || '');
-      replaceText('Un talento que moviliza el modelo de organización adaptativa', linesB[3] || '');
-    }
+    if (data.tituloA) replaceText('Título 1', data.tituloA);
+    if (data.tituloB) replaceText('Título 2', data.tituloB);
+    const ideasA = Array.isArray(data.ideasA) ? data.ideasA : String(data.ideasA||'').split('\n').filter(l=>l.trim());
+    const ideasB = Array.isArray(data.ideasB) ? data.ideasB : String(data.ideasB||'').split('\n').filter(l=>l.trim());
+    ideasA.forEach((idea, i) => { if(idea) replaceText(`Idea fuerza ${i+1}`, String(idea).replace(/^[-•·*]\s*/,'').trim()); });
+    ideasB.forEach((idea, i) => { if(idea) replaceText(`Idea fuerza ${i+4}`, String(idea).replace(/^[-•·*]\s*/,'').trim()); });
   }
 
   if (slideNum === 8) {
