@@ -1082,16 +1082,15 @@ async function callClaude(messages, system) {
 // ══ UI HELPERS ══
 
 const POOL_SLIDES = [
-  { id: 9,  label: 'Sello metodológico (portada)' },
-  { id: 10, label: 'Los modelos y metodologías' },
-  { id: 11, label: 'Los procesos de cambio adaptativos' },
-  { id: 12, label: 'Perspectiva estratégica e integradora' },
-  { id: 13, label: 'Iteración adaptativa' },
-  { id: 14, label: 'Liderando el Cambio (versión A)' },
-  { id: 15, label: 'Liderando el Cambio (versión B)' },
-  { id: 17, label: 'Plan de trabajo - por años' },
-  { id: 18, label: 'Plan de trabajo - por etapas' },
-  { id: 19, label: 'Sumando a las personas al cambio' },
+  { id: 1, label: 'Sello metodológico (portada)' },
+  { id: 2, label: 'Los modelos y metodologías' },
+  { id: 3, label: 'Los procesos de cambio adaptativos' },
+  { id: 4, label: 'Perspectiva estratégica e integradora' },
+  { id: 5, label: 'Iteración adaptativa' },
+  { id: 6, label: 'Liderando el Cambio (versión A)' },
+  { id: 7, label: 'Liderando el Cambio (versión B)' },
+  { id: 8, label: 'Plan de trabajo - por etapas' },
+  { id: 9, label: 'Sumando a las personas al cambio' },
 ];
 let poolSelection = new Set(POOL_SLIDES.map(s => s.id));
 
@@ -1131,26 +1130,47 @@ async function applyPoolSlides() {
   const selected = POOL_SLIDES.filter(s => poolSelection.has(s.id));
   if (!selected.length) { showToast('Selecciona al menos una lámina', 'error'); return; }
 
+  const BANK_ID = '1uyoN30g0wOWLvrbiJMbOEeDZ_iVNEd0r5Au8R3m1PlA';
   const status = document.getElementById('poolStatus');
-  status.textContent = 'Obteniendo presentación...';
+  status.textContent = 'Obteniendo banco de láminas...';
 
   try {
-    // Get current presentation to find slide objectIds
+    // Get bank presentation to find slide objectIds
+    const bankRes = await fetch(`https://slides.googleapis.com/v1/presentations/${BANK_ID}`, {
+      headers: { Authorization: 'Bearer ' + googleToken }
+    });
+    const bankData = await bankRes.json();
+    const bankSlides = bankData.slides || [];
+
+    // Get current presentation slide count
     const presRes = await fetch(`https://slides.googleapis.com/v1/presentations/${presentationId}`, {
       headers: { Authorization: 'Bearer ' + googleToken }
     });
     const presData = await presRes.json();
-    const slides = presData.slides || [];
-    const currentCount = slides.length;
+    const currentCount = presData.slides?.length || 0;
 
-    status.textContent = `Duplicando ${selected.length} lámina(s)...`;
+    status.textContent = `Copiando ${selected.length} lámina(s) desde el banco...`;
 
-    // Duplicate selected slides (they stay at end initially)
-    const dupRequests = selected
-      .filter(s => slides[s.id - 1])
-      .map(s => ({ duplicateObject: { objectId: slides[s.id - 1].objectId } }));
+    // Copy each selected slide from bank to proposal one at a time
+    for (let i = 0; i < selected.length; i++) {
+      const bankSlideIdx = selected[i].id - 1;
+      if (!bankSlides[bankSlideIdx]) continue;
+      const slideObjectId = bankSlides[bankSlideIdx].objectId;
 
-    await batchUpdate(dupRequests);
+      await fetch(`https://slides.googleapis.com/v1/presentations/${presentationId}:batchUpdate`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + googleToken, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requests: [{
+            copyPaste: {
+              objectId: slideObjectId,
+              pasteType: 'FORMATTED',
+              source: { presentationId: BANK_ID }
+            }
+          }]
+        })
+      });
+    }
 
     // Get updated presentation to find new slide IDs
     const presRes2 = await fetch(`https://slides.googleapis.com/v1/presentations/${presentationId}`, {
@@ -1158,22 +1178,28 @@ async function applyPoolSlides() {
     });
     const presData2 = await presRes2.json();
     const allSlides = presData2.slides || [];
-    const newSlides = allSlides.slice(currentCount); // the duplicated ones at end
+    const newSlides = allSlides.slice(currentCount);
 
-    // Move them to position 8 (after slide 8), in order
+    // Move newly added slides to position 8 (after slide 8), in order
     for (let i = 0; i < newSlides.length; i++) {
-      await batchUpdate([{
-        updateSlidesPosition: {
-          slideObjectIds: [newSlides[i].objectId],
-          insertionIndex: 8 + i
-        }
-      }]);
+      await fetch(`https://slides.googleapis.com/v1/presentations/${presentationId}:batchUpdate`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + googleToken, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requests: [{
+            updateSlidesPosition: {
+              slideObjectIds: [newSlides[i].objectId],
+              insertionIndex: 8 + i
+            }
+          }]
+        })
+      });
     }
 
     slideStatus[currentSlide] = 'done';
     renderSidebar(); updateProgress();
     status.innerHTML = `<span style="color:#047857;font-weight:500">✓ ${selected.length} lámina(s) copiadas después de la lámina 8. Ábrelas en Google Slides y elimina las que no necesites.</span>`;
-    showToast(`✓ ${selected.length} láminas agregadas a tu presentación`, 'success');
+    showToast(`✓ ${selected.length} láminas agregadas`, 'success');
   } catch(e) {
     status.textContent = 'Error: ' + e.message;
     showToast('Error: ' + e.message, 'error');
