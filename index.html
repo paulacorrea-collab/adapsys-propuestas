@@ -1082,41 +1082,49 @@ async function callClaude(messages, system) {
 // ══ UI HELPERS ══
 
 const POOL_SLIDES = [
-  { id: 1, label: 'Sello metodológico (portada)' },
-  { id: 2, label: 'Los modelos y metodologías' },
-  { id: 3, label: 'Los procesos de cambio adaptativos' },
-  { id: 4, label: 'Perspectiva estratégica e integradora' },
-  { id: 5, label: 'Iteración adaptativa' },
-  { id: 6, label: 'Liderando el Cambio (versión A)' },
-  { id: 7, label: 'Liderando el Cambio (versión B)' },
-  { id: 8, label: 'Plan de trabajo - por etapas' },
-  { id: 9, label: 'Sumando a las personas al cambio' },
+  { id: 9,  label: 'Sello metodológico (portada sección)' },
+  { id: 10, label: 'Los modelos y metodologías' },
+  { id: 11, label: 'Los procesos de cambio adaptativos' },
+  { id: 12, label: 'Perspectiva estratégica e integradora' },
+  { id: 13, label: 'Iteración adaptativa' },
+  { id: 14, label: 'Liderando el Cambio (versión A)' },
+  { id: 15, label: 'Liderando el Cambio (versión B)' },
+  { id: 16, label: 'Ejemplo cliente (eliminar siempre)' },
+  { id: 17, label: 'Plan de trabajo - por años' },
+  { id: 18, label: 'Plan de trabajo - por etapas' },
+  { id: 19, label: 'Sumando a las personas al cambio' },
 ];
-let poolSelection = new Set(POOL_SLIDES.map(s => s.id));
+// Start with none selected to keep (= all will be deleted by default)
+// User checks the ones they want to KEEP
+let poolKeepSelection = new Set();
 
 function renderPoolSlide() {
   const c = document.getElementById('messages');
   c.innerHTML = '';
   const checklistHtml = POOL_SLIDES.map(s => `
-    <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;border:1.5px solid ${poolSelection.has(s.id)?'var(--teal)':'var(--border)'};margin-bottom:6px;font-size:13px;background:white;transition:all 0.15s">
-      <input type="checkbox" ${poolSelection.has(s.id) ? 'checked' : ''}
-             onchange="poolSelection.has(${s.id}) ? poolSelection.delete(${s.id}) : poolSelection.add(${s.id}); this.closest('label').style.borderColor=this.checked?'var(--teal)':'var(--border)'"
+    <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;border:1.5px solid ${s.id===16?'#fca5a5':'var(--border)'};margin-bottom:6px;font-size:13px;background:${s.id===16?'#fff5f5':'white'};transition:all 0.15s">
+      <input type="checkbox" ${poolKeepSelection.has(s.id) ? 'checked' : ''}
+             onchange="poolKeepSelection.has(${s.id}) ? poolKeepSelection.delete(${s.id}) : poolKeepSelection.add(${s.id}); this.closest('label').style.borderColor=this.checked?'var(--teal)':'var(--border)'; this.closest('label').style.background=this.checked?'var(--teal-light)':'white'"
              style="width:16px;height:16px;accent-color:var(--teal)">
       <span>Lámina ${s.id} — ${s.label}</span>
+      ${s.id===16 ? '<span style="margin-left:auto;font-size:10px;background:#fee2e2;color:#dc2626;padding:2px 6px;border-radius:4px;font-weight:600">ELIMINAR</span>' : ''}
     </label>`).join('');
 
   const html = `<div style="max-width:580px">
-    <div style="font-size:14px;color:var(--muted);margin-bottom:16px;line-height:1.6">
-      Selecciona las láminas estándar que quieres incluir en esta propuesta. Se copiarán después de la lámina 8. Puedes eliminar las que no necesites directamente en Google Slides.
+    <div style="font-size:14px;color:var(--muted);margin-bottom:8px;line-height:1.6">
+      Marca las láminas que quieres <strong>conservar</strong> en la propuesta. Las que queden sin marcar serán eliminadas.
+    </div>
+    <div style="font-size:12px;background:#fff3cd;border:1px solid #fcd34d;border-radius:8px;padding:10px 12px;margin-bottom:14px;color:#92400e">
+      💡 La lámina 16 es un ejemplo de cliente y debe eliminarse siempre.
     </div>
     ${checklistHtml}
     <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap">
-      <button onclick="applyPoolSlides()" class="apply-action-btn primary" style="padding:10px 20px;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--teal);color:white">
-        Copiar láminas seleccionadas a Slides →
+      <button onclick="applyPoolSlides()" style="padding:10px 20px;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;border:none;cursor:pointer;background:#dc2626;color:white">
+        Eliminar láminas no seleccionadas →
       </button>
-      <button onclick="poolSelection=new Set();document.querySelectorAll('#messages input[type=checkbox]').forEach(cb=>{cb.checked=false;cb.closest('label').style.borderColor='var(--border)'})" 
+      <button onclick="POOL_SLIDES.forEach(s=>poolKeepSelection.add(s.id));document.querySelectorAll('#messages input[type=checkbox]').forEach(cb=>{cb.checked=true;cb.closest('label').style.borderColor='var(--teal)';cb.closest('label').style.background='var(--teal-light)'})" 
               style="padding:10px 16px;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:13px;background:white;border:1.5px solid var(--border);cursor:pointer">
-        Desmarcar todas
+        Marcar todas para conservar
       </button>
     </div>
     <div id="poolStatus" style="margin-top:12px;font-size:13px;color:var(--muted)"></div>
@@ -1127,79 +1135,45 @@ function renderPoolSlide() {
 async function applyPoolSlides() {
   if (!googleToken) { showToast('Conéctate con Google primero', 'error'); return; }
   if (!presentationId) { showToast('No hay presentación configurada', 'error'); return; }
-  const selected = POOL_SLIDES.filter(s => poolSelection.has(s.id));
-  if (!selected.length) { showToast('Selecciona al menos una lámina', 'error'); return; }
 
-  const BANK_ID = '1uyoN30g0wOWLvrbiJMbOEeDZ_iVNEd0r5Au8R3m1PlA';
   const status = document.getElementById('poolStatus');
-  status.textContent = 'Obteniendo banco de láminas...';
+  status.textContent = 'Obteniendo presentación...';
 
   try {
-    // Get bank presentation to find slide objectIds
-    const bankRes = await fetch(`https://slides.googleapis.com/v1/presentations/${BANK_ID}`, {
-      headers: { Authorization: 'Bearer ' + googleToken }
-    });
-    const bankData = await bankRes.json();
-    const bankSlides = bankData.slides || [];
-
-    // Get current presentation slide count
+    // Get current presentation to find slide objectIds
     const presRes = await fetch(`https://slides.googleapis.com/v1/presentations/${presentationId}`, {
       headers: { Authorization: 'Bearer ' + googleToken }
     });
     const presData = await presRes.json();
-    const currentCount = presData.slides?.length || 0;
+    const allSlides = presData.slides || [];
 
-    status.textContent = `Copiando ${selected.length} lámina(s) desde el banco...`;
-
-    // Copy each selected slide from bank to proposal one at a time
-    for (let i = 0; i < selected.length; i++) {
-      const bankSlideIdx = selected[i].id - 1;
-      if (!bankSlides[bankSlideIdx]) continue;
-      const slideObjectId = bankSlides[bankSlideIdx].objectId;
-
-      await fetch(`https://slides.googleapis.com/v1/presentations/${presentationId}:batchUpdate`, {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + googleToken, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          requests: [{
-            copyPaste: {
-              objectId: slideObjectId,
-              pasteType: 'FORMATTED',
-              source: { presentationId: BANK_ID }
-            }
-          }]
-        })
-      });
+    // Find slides to DELETE: pool slides that are NOT in keepSelection
+    const toDelete = POOL_SLIDES.filter(s => !poolKeepSelection.has(s.id));
+    if (!toDelete.length) {
+      status.innerHTML = '<span style="color:#047857;font-weight:500">✓ No hay láminas para eliminar. ¡Propuesta completa!</span>';
+      slideStatus[currentSlide] = 'done';
+      renderSidebar(); updateProgress();
+      return;
     }
 
-    // Get updated presentation to find new slide IDs
-    const presRes2 = await fetch(`https://slides.googleapis.com/v1/presentations/${presentationId}`, {
-      headers: { Authorization: 'Bearer ' + googleToken }
-    });
-    const presData2 = await presRes2.json();
-    const allSlides = presData2.slides || [];
-    const newSlides = allSlides.slice(currentCount);
+    status.textContent = `Eliminando ${toDelete.length} lámina(s)...`;
 
-    // Move newly added slides to position 8 (after slide 8), in order
-    for (let i = 0; i < newSlides.length; i++) {
-      await fetch(`https://slides.googleapis.com/v1/presentations/${presentationId}:batchUpdate`, {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + googleToken, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          requests: [{
-            updateSlidesPosition: {
-              slideObjectIds: [newSlides[i].objectId],
-              insertionIndex: 8 + i
-            }
-          }]
-        })
-      });
+    // Build delete requests — slide IDs are 1-based in our array but 0-based in API
+    const deleteRequests = toDelete
+      .filter(s => allSlides[s.id - 1])
+      .map(s => ({ deleteObject: { objectId: allSlides[s.id - 1].objectId } }));
+
+    if (!deleteRequests.length) {
+      status.textContent = 'No se encontraron las láminas en la presentación.';
+      return;
     }
+
+    await batchUpdate(deleteRequests);
 
     slideStatus[currentSlide] = 'done';
     renderSidebar(); updateProgress();
-    status.innerHTML = `<span style="color:#047857;font-weight:500">✓ ${selected.length} lámina(s) copiadas después de la lámina 8. Ábrelas en Google Slides y elimina las que no necesites.</span>`;
-    showToast(`✓ ${selected.length} láminas agregadas`, 'success');
+    status.innerHTML = `<span style="color:#047857;font-weight:500">✓ ${toDelete.length} lámina(s) eliminadas. La propuesta está lista — ábrela en Google Slides.</span>`;
+    showToast(`✓ ${toDelete.length} láminas eliminadas`, 'success');
   } catch(e) {
     status.textContent = 'Error: ' + e.message;
     showToast('Error: ' + e.message, 'error');
