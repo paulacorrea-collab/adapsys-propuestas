@@ -954,16 +954,23 @@ function buildRequests(idx, data) {
   if (slideNum === 6) {
     const bulletsText = Array.isArray(data.bullets) ? data.bullets.join('\n') : String(data.bullets || '');
     const newLines = bulletsText.split('\n').filter(l=>l.trim()).map(l=>l.replace(/^[-•·*]\s*/,''));
-   newLines.forEach((line, i) => {
+  newLines.forEach((line, i) => {
       const num = i + 1;
       let newTitle = '', newDesc = '';
       if (typeof line === 'object' && line !== null) {
-        newTitle = String(line.titulo || line.title || line.nombre || Object.values(line)[0] || '').trim();
-        newDesc = String(line.texto || line.text || line.descripcion || Object.values(line)[1] || '').trim();
+        newTitle = String(line.titulo || line.title || Object.values(line)[0] || '').trim();
+        newDesc = String(line.texto || line.text || Object.values(line)[1] || '').trim();
       } else {
-        const parts = String(line).split(':');
-        newTitle = (parts[0] || '').trim();
-        newDesc = (parts.slice(1).join(':') || '').trim();
+        const str = String(line).trim();
+        // Split on first period followed by space — "Título. Texto del bullet"
+        const dotIdx = str.indexOf('. ');
+        if (dotIdx > -1) {
+          newTitle = str.slice(0, dotIdx).trim();
+          newDesc = str.slice(dotIdx + 2).trim();
+        } else {
+          newTitle = str;
+          newDesc = '';
+        }
       }
       replaceText(`B${num}_Título ${num}`, newTitle);
       replaceText(`B${num}_Texto ${num}`, newDesc);
