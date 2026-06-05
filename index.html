@@ -988,21 +988,10 @@ function buildRequests(idx, data) {
   }
 
   if (slideNum === 8) {
-    const origTitles = [
-      'Evolucionar la cultura organizacional',
-      'Ampliar la mirada',
-      'Tener una estrategia innovadora',
-      'Consolidar el modelo de negocio',
-    ];
     [1,2,3,4].forEach(n => {
-      if (data['desafio'+n]) replaceText(origTitles[n-1], data['desafio'+n]);
+      if (data['titulo'+n]) replaceText(`Título ${n}`, data['titulo'+n]);
+      if (data['texto'+n])  replaceText(`Texto ${n}`,  data['texto'+n]);
     });
-    // Replace lorem ipsum — all 4 paragraphs have same text, tricky
-    // Use a unique approach: replace by index isn't possible with replaceAllText
-    // Instead we replace one at a time and rely on the fact they're identical placeholder
-    // (In practice, all 4 lorem paragraphs are the same text, so replaceAllText replaces all)
-    // Better: instruct users to replace placeholder text in template with unique markers
-    if (data.desc1) replaceText('Lorem ipsum dolor sit amet, diam donec neque nisl nibh, ante rutrum proin cras dui ac cum, amet nunc dolor. Senectus urna justo, dis tristique purus commodo at. Donec nullam pede, non neque nit.', data.desc1);
   }
 
   return requests.filter(r => r.replaceAllText.replaceText !== undefined);
