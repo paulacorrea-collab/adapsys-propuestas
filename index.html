@@ -531,12 +531,12 @@ const SLIDES = [
     fields:['paginas'] },
   { num:5, title:'Intro Contexto',       desc:'Se mantiene igual',                       type:'fixed'    },
   { num:6, title:'El momento actual',    desc:'Contexto actual del cliente (bullets)',   type:'edit',
-    fields:['bullets','ideaFuerza'] },
+    fields:['bullets'] },
   { num:7, title:'Aspiración A → B',     desc:'Estado actual y aspiración (opcional)',   type:'optional',
-    fields:['tituloA','ideasA','tituloB','ideasB'] },
+    fields:['incluir','estadoA','estadoB'] },
   { num:8, title:'Desafíos adaptativos', desc:'4 grandes desafíos del cliente',          type:'edit',
     fields:['titulo1','texto1','titulo2','texto2','titulo3','texto3','titulo4','texto4'] },
-  { num:9, title:'Láminas estándar', desc:'Selecciona las secciones a incluir', type:'pool', fields:[] },
+  { num:'9-19', title:'Láminas estándar', desc:'Selecciona las secciones a incluir', type:'pool', fields:[] },
 ];
 
 // ══════════════════════════════════════════
@@ -817,6 +817,7 @@ function hideTyping() { const e=document.getElementById('typing'); if(e) e.remov
 // ══ CONVERSATION ══
 async function startSlideConversation(idx) {
   const s = SLIDES[idx];
+  if (s.type === 'pool') { renderPoolSlide(); return; }
   if (s.type === 'fixed') {
     addMsg('assistant', '<div class="fixed-notice">🔒 Esta lámina es <strong>estándar</strong> y no requiere cambios. Avanza a la siguiente.</div>');
     slideStatus[idx] = 'done'; renderSidebar(); updateProgress(); return;
@@ -952,47 +953,56 @@ function buildRequests(idx, data) {
     replaceText('La presente propuesta surge de conversaciones con miembros del Directorio y el secretario general de SNA.', data.origen);
   }
 
-  if (slideNum === 6) {
-    const bulletsText = Array.isArray(data.bullets) ? data.bullets.join('\n') : String(data.bullets || '');
-    const newLines = bulletsText.split('\n').filter(l=>l.trim()).map(l=>l.replace(/^[-•·*]\s*/,''));
-  newLines.forEach((line, i) => {
-      const num = i + 1;
-      let newTitle = '', newDesc = '';
-      if (typeof line === 'object' && line !== null) {
-        newTitle = String(line.titulo || line.title || Object.values(line)[0] || '').trim();
-        newDesc = String(line.texto || line.text || Object.values(line)[1] || '').trim();
-      } else {
-        const str = String(line).trim();
-        // Split on first period followed by space — "Título. Texto del bullet"
-        const dotIdx = str.indexOf('. ');
-        if (dotIdx > -1) {
-          newTitle = str.slice(0, dotIdx).trim();
-          newDesc = str.slice(dotIdx + 2).trim();
-        } else {
-          newTitle = str;
-          newDesc = '';
-        }
-      }
-      replaceText(`B${num}_Título ${num}`, newTitle);
-      replaceText(`B${num}_Texto ${num}`, newDesc);
+  if (slideNum === 6 && data.bullets) {
+    // Replace each existing bullet with new content
+    const existingBullets = [
+      'Historia que da confianza.',
+      'Actualmente cuenta con plantas en cinco países.',
+      'Definición de Propósito.',
+      'Estrategia.',
+    ];
+    const newLines = data.bullets.split('\n').filter(l=>l.trim()).map(l=>l.replace(/^[-•·*]\s*/,''));
+    // Replace first line markers
+    existingBullets.forEach((b,i) => {
+      if (newLines[i]) replaceText(b, newLines[i].split('.')[0] + '.');
     });
-    if (data.ideaFuerza) replaceText('Idea fuerza', data.ideaFuerza);
+    // Also replace full placeholder text if it matches exactly
+    replaceText('Molymet nace en 1975', newLines[0]?.slice(newLines[0]?.indexOf('.')+1)?.trim() || '');
   }
 
   if (slideNum === 7) {
-    if (data.tituloA) replaceText('Título 1', data.tituloA);
-    if (data.tituloB) replaceText('Título 2', data.tituloB);
-    const ideasA = Array.isArray(data.ideasA) ? data.ideasA : String(data.ideasA||'').split('\n').filter(l=>l.trim());
-    const ideasB = Array.isArray(data.ideasB) ? data.ideasB : String(data.ideasB||'').split('\n').filter(l=>l.trim());
-    ideasA.forEach((idea, i) => { if(idea) replaceText(`Idea fuerza ${i+1}`, String(idea).replace(/^[-•·*]\s*/,'').trim()); });
-    ideasB.forEach((idea, i) => { if(idea) replaceText(`Idea fuerza ${i+4}`, String(idea).replace(/^[-•·*]\s*/,'').trim()); });
+    if (data.estadoA) {
+      const linesA = data.estadoA.split('\n').filter(l=>l.trim()).map(l=>l.replace(/^[-•·*]\s*/,''));
+      replaceText('Desde una organización enfocada en excelencia y rentabilidad', linesA[0] || '');
+      replaceText('Una organización que enfatiza la excelencia operacional y la rentabilidad de sus negocios.', linesA[1] || '');
+      replaceText('Una organización que cuenta con una estructura organizacional con enfoque matricial', linesA[2] || '');
+      replaceText('Sello de Liderazgo declarado, que asume grandes retos', linesA[3] || '');
+    }
+    if (data.estadoB) {
+      const linesB = data.estadoB.split('\n').filter(l=>l.trim()).map(l=>l.replace(/^[-•·*]\s*/,''));
+      replaceText('Hacia una organización ágil, simple y adaptativa que produce valor sostenible', linesB[0] || '');
+      replaceText('Una organización ágil y simple, que incorpora prácticas de agilismo empresarial', linesB[1] || '');
+      replaceText('Una organización que habilita escenarios para fortalecer la experimentación', linesB[2] || '');
+      replaceText('Un talento que moviliza el modelo de organización adaptativa', linesB[3] || '');
+    }
   }
 
   if (slideNum === 8) {
+    const origTitles = [
+      'Evolucionar la cultura organizacional',
+      'Ampliar la mirada',
+      'Tener una estrategia innovadora',
+      'Consolidar el modelo de negocio',
+    ];
     [1,2,3,4].forEach(n => {
-      if (data['titulo'+n]) replaceText(`Título ${n}`, data['titulo'+n]);
-      if (data['texto'+n])  replaceText(`Texto ${n}`,  data['texto'+n]);
+      if (data['desafio'+n]) replaceText(origTitles[n-1], data['desafio'+n]);
     });
+    // Replace lorem ipsum — all 4 paragraphs have same text, tricky
+    // Use a unique approach: replace by index isn't possible with replaceAllText
+    // Instead we replace one at a time and rely on the fact they're identical placeholder
+    // (In practice, all 4 lorem paragraphs are the same text, so replaceAllText replaces all)
+    // Better: instruct users to replace placeholder text in template with unique markers
+    if (data.desc1) replaceText('Lorem ipsum dolor sit amet, diam donec neque nisl nibh, ante rutrum proin cras dui ac cum, amet nunc dolor. Senectus urna justo, dis tristique purus commodo at. Donec nullam pede, non neque nit.', data.desc1);
   }
 
   return requests.filter(r => r.replaceAllText.replaceText !== undefined);
@@ -1070,6 +1080,107 @@ async function callClaude(messages, system) {
 }
 
 // ══ UI HELPERS ══
+
+const POOL_SLIDES = [
+  { id: 9,  label: 'Sello metodológico (portada)' },
+  { id: 10, label: 'Los modelos y metodologías' },
+  { id: 11, label: 'Los procesos de cambio adaptativos' },
+  { id: 12, label: 'Perspectiva estratégica e integradora' },
+  { id: 13, label: 'Iteración adaptativa' },
+  { id: 14, label: 'Liderando el Cambio (versión A)' },
+  { id: 15, label: 'Liderando el Cambio (versión B)' },
+  { id: 17, label: 'Plan de trabajo - por años' },
+  { id: 18, label: 'Plan de trabajo - por etapas' },
+  { id: 19, label: 'Sumando a las personas al cambio' },
+];
+let poolSelection = new Set(POOL_SLIDES.map(s => s.id));
+
+function renderPoolSlide() {
+  const c = document.getElementById('messages');
+  c.innerHTML = '';
+  const checklistHtml = POOL_SLIDES.map(s => `
+    <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;border:1.5px solid ${poolSelection.has(s.id)?'var(--teal)':'var(--border)'};margin-bottom:6px;font-size:13px;background:white;transition:all 0.15s">
+      <input type="checkbox" ${poolSelection.has(s.id) ? 'checked' : ''}
+             onchange="poolSelection.has(${s.id}) ? poolSelection.delete(${s.id}) : poolSelection.add(${s.id}); this.closest('label').style.borderColor=this.checked?'var(--teal)':'var(--border)'"
+             style="width:16px;height:16px;accent-color:var(--teal)">
+      <span>Lámina ${s.id} — ${s.label}</span>
+    </label>`).join('');
+
+  const html = `<div style="max-width:580px">
+    <div style="font-size:14px;color:var(--muted);margin-bottom:16px;line-height:1.6">
+      Selecciona las láminas estándar que quieres incluir en esta propuesta. Se copiarán después de la lámina 8. Puedes eliminar las que no necesites directamente en Google Slides.
+    </div>
+    ${checklistHtml}
+    <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap">
+      <button onclick="applyPoolSlides()" class="apply-action-btn primary" style="padding:10px 20px;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--teal);color:white">
+        Copiar láminas seleccionadas a Slides →
+      </button>
+      <button onclick="poolSelection=new Set();document.querySelectorAll('#messages input[type=checkbox]').forEach(cb=>{cb.checked=false;cb.closest('label').style.borderColor='var(--border)'})" 
+              style="padding:10px 16px;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:13px;background:white;border:1.5px solid var(--border);cursor:pointer">
+        Desmarcar todas
+      </button>
+    </div>
+    <div id="poolStatus" style="margin-top:12px;font-size:13px;color:var(--muted)"></div>
+  </div>`;
+  c.appendChild(makeMsgEl('assistant', html));
+}
+
+async function applyPoolSlides() {
+  if (!googleToken) { showToast('Conéctate con Google primero', 'error'); return; }
+  if (!presentationId) { showToast('No hay presentación configurada', 'error'); return; }
+  const selected = POOL_SLIDES.filter(s => poolSelection.has(s.id));
+  if (!selected.length) { showToast('Selecciona al menos una lámina', 'error'); return; }
+
+  const status = document.getElementById('poolStatus');
+  status.textContent = 'Obteniendo presentación...';
+
+  try {
+    // Get current presentation to find slide objectIds
+    const presRes = await fetch(`https://slides.googleapis.com/v1/presentations/${presentationId}`, {
+      headers: { Authorization: 'Bearer ' + googleToken }
+    });
+    const presData = await presRes.json();
+    const slides = presData.slides || [];
+    const currentCount = slides.length;
+
+    status.textContent = `Duplicando ${selected.length} lámina(s)...`;
+
+    // Duplicate selected slides (they stay at end initially)
+    const dupRequests = selected
+      .filter(s => slides[s.id - 1])
+      .map(s => ({ duplicateObject: { objectId: slides[s.id - 1].objectId } }));
+
+    await batchUpdate(dupRequests);
+
+    // Get updated presentation to find new slide IDs
+    const presRes2 = await fetch(`https://slides.googleapis.com/v1/presentations/${presentationId}`, {
+      headers: { Authorization: 'Bearer ' + googleToken }
+    });
+    const presData2 = await presRes2.json();
+    const allSlides = presData2.slides || [];
+    const newSlides = allSlides.slice(currentCount); // the duplicated ones at end
+
+    // Move them to position 8 (after slide 8), in order
+    for (let i = 0; i < newSlides.length; i++) {
+      await batchUpdate([{
+        updateSlidesPosition: {
+          slideObjectIds: [newSlides[i].objectId],
+          insertionIndex: 8 + i
+        }
+      }]);
+    }
+
+    slideStatus[currentSlide] = 'done';
+    renderSidebar(); updateProgress();
+    status.innerHTML = `<span style="color:#047857;font-weight:500">✓ ${selected.length} lámina(s) copiadas después de la lámina 8. Ábrelas en Google Slides y elimina las que no necesites.</span>`;
+    showToast(`✓ ${selected.length} láminas agregadas a tu presentación`, 'success');
+  } catch(e) {
+    status.textContent = 'Error: ' + e.message;
+    showToast('Error: ' + e.message, 'error');
+    console.error(e);
+  }
+}
+
 function renderPanel() {
   const labels = {
     titulo:'Título', fecha:'Fecha', nombreCliente:'Cliente',
