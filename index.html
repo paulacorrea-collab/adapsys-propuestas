@@ -899,6 +899,15 @@ function startApp() {
 // ══════════════════════════════════════════
 // APP LOGIC
 // ══════════════════════════════════════════
+function reEditSlide(idx) {
+  conversations[idx] = [];
+  slideStatus[idx] = 'pending';
+  renderSidebar();
+  const c = document.getElementById('messages');
+  c.innerHTML = '';
+  startSlideConversation(idx);
+}
+
 function goToProjects() {
   saveCurrentProject();
   document.getElementById('appHeader').style.display = 'none';
@@ -950,7 +959,7 @@ function skipSlide() { slideStatus[currentSlide]='skip'; renderSidebar(); update
 function renderMessages() {
   const c = document.getElementById('messages');
   c.innerHTML = '';
-  conversations[currentSlide].forEach(m => c.appendChild(makeMsgEl(m.role, m.content)));
+  conversations[currentSlide].forEach(m => c.appendChild(makeMsgEl(m.role, m.html || m.content || '')));
   c.scrollTop = c.scrollHeight;
 }
 
@@ -991,6 +1000,20 @@ async function startSlideConversation(idx) {
   if (s.type === 'fixed') {
     addMsg('assistant', '<div class="fixed-notice">🔒 Esta lámina es <strong>estándar</strong> y no requiere cambios. Avanza a la siguiente.</div>');
     slideStatus[idx] = 'done'; renderSidebar(); updateProgress(); return;
+  }
+  // If already done, show completion summary instead of re-asking
+  if (slideStatus[idx] === 'done' && allData['slide'+(idx+1)]) {
+    const data = allData['slide'+(idx+1)];
+    const fields = Object.entries(data).filter(([k,v])=>v).map(([k,v])=>`<div style="margin-bottom:4px"><span style="font-weight:600;color:var(--teal)">${k}:</span> ${String(v).slice(0,80)}${String(v).length>80?'…':''}</div>`).join('');
+    addMsg('assistant', `<div class="fixed-notice" style="flex-direction:column;align-items:flex-start;gap:8px">
+      <div style="font-weight:600;color:#047857">✓ Lámina completada</div>
+      <div style="font-size:12px">${fields}</div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button onclick="reEditSlide(${idx})" style="font-size:12px;padding:5px 12px;border-radius:7px;border:1.5px solid var(--border);background:white;cursor:pointer;font-family:'DM Sans',sans-serif">Editar de nuevo</button>
+        <button onclick="goSlide(1)" style="font-size:12px;padding:5px 12px;border-radius:7px;border:none;background:var(--teal);color:white;cursor:pointer;font-family:'DM Sans',sans-serif">Siguiente →</button>
+      </div>
+    </div>`);
+    return;
   }
   setLoading(true); showTyping();
   try {
