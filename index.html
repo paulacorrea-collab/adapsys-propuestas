@@ -1072,11 +1072,27 @@ function showApplyCard() {
   const html = `<div class="apply-card">
     <div class="apply-card-title">✓ Información lista para esta lámina</div>
     <div class="apply-card-actions">
-      <button class="apply-action-btn primary" onclick="applySingleSlide(${currentSlide})">Aplicar en Slides ahora</button>
+      <button class="apply-action-btn primary" id="applySlideBtn_${currentSlide}" onclick="applySingleSlideAndConfirm(${currentSlide})">Aplicar en Slides ahora</button>
       <button class="apply-action-btn secondary" onclick="goSlide(1)">Siguiente lámina →</button>
     </div>
+    <div id="applySlideStatus_${currentSlide}" style="margin-top:10px;font-size:12px;color:var(--muted)"></div>
   </div>`;
   addMsg('assistant', html);
+}
+
+async function applySingleSlideAndConfirm(idx) {
+  const btn = document.getElementById('applySlideBtn_' + idx);
+  const statusEl = document.getElementById('applySlideStatus_' + idx);
+  if (btn) { btn.disabled = true; btn.textContent = 'Aplicando…'; }
+  if (statusEl) statusEl.textContent = '';
+  try {
+    await applySingleSlide(idx);
+    if (btn) btn.style.display = 'none';
+    if (statusEl) statusEl.innerHTML = '<span style="color:#047857;font-weight:600">✓ Lámina aplicada en Google Slides</span> · <button onclick="goSlide(1)" style="background:none;border:none;color:var(--teal);font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:12px;text-decoration:underline">Siguiente →</button>';
+  } catch(e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Aplicar en Slides ahora'; }
+    if (statusEl) statusEl.innerHTML = '<span style="color:#dc2626">Error al aplicar. Intenta de nuevo.</span>';
+  }
 }
 
 // ══ GOOGLE SLIDES API ══
