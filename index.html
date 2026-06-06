@@ -179,6 +179,64 @@ header {
 .badge-done { background: #d4f5ed; color: #047857; }
 .badge-skip { background: #f8fafc; color: #94a3b8; }
 .badge-opt { background: #fef3c7; color: #d97706; }
+.badge-pool { background: #f0fdf4; color: #15803d; }
+
+/* ── PROJECT SCREEN ── */
+#projectScreen {
+  position: fixed; inset: 0; background: var(--bg);
+  display: none; align-items: center; justify-content: center;
+  z-index: 90; flex-direction: column; padding: 24px;
+}
+.project-card {
+  background: white; border-radius: 20px; padding: 40px 48px;
+  box-shadow: 0 8px 60px rgba(2,128,144,0.12);
+  max-width: 600px; width: 100%; max-height: 80vh; overflow-y: auto;
+}
+.project-header {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px;
+}
+.project-title { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--teal); }
+.new-project-btn {
+  background: var(--teal); color: white; border: none; border-radius: 9px;
+  padding: 9px 18px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: background 0.2s;
+}
+.new-project-btn:hover { background: var(--teal-dark); }
+.project-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+.project-item {
+  display: flex; align-items: center; gap: 14px; padding: 14px 16px;
+  border: 1.5px solid var(--border); border-radius: 12px; cursor: pointer;
+  transition: all 0.15s; background: white;
+}
+.project-item:hover { border-color: var(--teal); background: var(--teal-light); }
+.project-item-icon {
+  width: 40px; height: 40px; border-radius: 10px; background: var(--teal-light);
+  display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
+}
+.project-item-info { flex: 1; min-width: 0; }
+.project-item-name { font-weight: 600; font-size: 14px; color: var(--text); }
+.project-item-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.project-item-progress {
+  font-size: 11px; font-weight: 600; color: var(--teal);
+  background: var(--teal-light); padding: 3px 8px; border-radius: 20px;
+}
+.project-empty {
+  text-align: center; padding: 32px; color: var(--muted); font-size: 14px;
+}
+.new-project-form { border-top: 1px solid var(--border); padding-top: 20px; margin-top: 4px; }
+.new-project-form input {
+  width: 100%; border: 1.5px solid var(--border); border-radius: 10px;
+  padding: 11px 14px; font-family: 'DM Sans', sans-serif; font-size: 14px;
+  color: var(--text); background: var(--bg); outline: none; margin-bottom: 10px;
+  transition: border-color 0.2s;
+}
+.new-project-form input:focus { border-color: var(--teal); background: white; }
+.new-project-form .row { display: flex; gap: 8px; }
+.delete-proj-btn {
+  background: none; border: none; color: #dc2626; cursor: pointer;
+  font-size: 16px; padding: 4px; opacity: 0.5; transition: opacity 0.15s;
+}
+.delete-proj-btn:hover { opacity: 1; }
 
 /* CHAT */
 .chat-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
@@ -362,23 +420,33 @@ textarea:focus { border-color: var(--teal); background: white; }
       </button>
     </div>
 
-    <div class="setup-divider"><span>luego</span></div>
-
-    <!-- Step 2: Slide URL -->
-    <div class="setup-step">
-      <div class="setup-label">2 · URL de tu presentación en Google Slides</div>
-      <div class="slide-url-row">
-        <input type="text" class="setup-input" id="slideUrlInput"
-          placeholder="https://docs.google.com/presentation/d/..."
-          oninput="saveSlideUrl(this.value)">
-        <button onclick="validateSlideUrl()">Verificar</button>
-      </div>
-      <div class="setup-hint" id="slideUrlHint">Pega la URL de tu template de propuestas en Google Slides.</div>
-    </div>
-
-    <button class="setup-btn" id="startBtn" onclick="startApp()" disabled>
-      Comenzar →
+    <button class="setup-btn" id="startBtn" onclick="startApp()" disabled style="margin-top:16px">
+      Ver mis propuestas →
     </button>
+    <input type="text" id="slideUrlInput" style="display:none">
+    <div id="slideUrlHint" style="display:none"></div>
+  </div>
+</div>
+
+<!-- ══════════════ PROJECT SCREEN ══════════════ -->
+<div id="projectScreen">
+  <div class="project-card">
+    <div class="project-header">
+      <div class="project-title">Mis propuestas</div>
+      <button class="new-project-btn" onclick="showNewProjectForm()">+ Nueva propuesta</button>
+    </div>
+    <div class="project-list" id="projectList">
+      <div class="project-empty">Cargando...</div>
+    </div>
+    <div class="new-project-form" id="newProjectForm" style="display:none">
+      <div style="font-size:12px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:var(--teal);margin-bottom:10px">Nueva propuesta</div>
+      <input type="text" id="newProjectName" placeholder="Nombre del cliente (ej: Mall Plaza)" />
+      <input type="text" id="newProjectUrl" placeholder="URL de Google Slides" />
+      <div class="row">
+        <button onclick="createProject()" style="flex:1;background:var(--teal);color:white;border:none;border-radius:9px;padding:11px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer">Crear propuesta →</button>
+        <button onclick="document.getElementById('newProjectForm').style.display='none'" style="background:white;border:1.5px solid var(--border);border-radius:9px;padding:11px 16px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer">Cancelar</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -503,6 +571,123 @@ const REDIRECT_URI    = 'https://adapsys-propuestas.vercel.app/';
 let ANTHROPIC_KEY = localStorage.getItem('adapsys_anthropic_key') || '';
 
 // ══════════════════════════════════════════
+// PROJECT MANAGEMENT
+// ══════════════════════════════════════════
+let currentProjectId = null;
+
+async function loadProjects() {
+  try {
+    const result = await window.storage.list('project:');
+    const keys = result?.keys || [];
+    const projects = [];
+    for (const key of keys) {
+      try {
+        const r = await window.storage.get(key);
+        if (r?.value) projects.push(JSON.parse(r.value));
+      } catch(e) {}
+    }
+    return projects.sort((a,b) => (b.updatedAt||0) - (a.updatedAt||0));
+  } catch(e) { return []; }
+}
+
+async function renderProjectList() {
+  const list = document.getElementById('projectList');
+  const projects = await loadProjects();
+  if (!projects.length) {
+    list.innerHTML = '<div class="project-empty">No tienes propuestas aún.<br>Crea una nueva para empezar.</div>';
+    return;
+  }
+  list.innerHTML = projects.map(p => {
+    const pct = Math.round((p.completedSlides||0) / 7 * 100);
+    const date = p.updatedAt ? new Date(p.updatedAt).toLocaleDateString('es-CL') : '';
+    return `<div class="project-item" onclick="openProject('${p.id}')">
+      <div class="project-item-icon">📋</div>
+      <div class="project-item-info">
+        <div class="project-item-name">${p.name}</div>
+        <div class="project-item-meta">${date} · ${p.slideUrl ? 'Slides conectado' : 'Sin Slides'}</div>
+      </div>
+      <div class="project-item-progress">${pct}%</div>
+      <button class="delete-proj-btn" onclick="deleteProject(event,'${p.id}')">🗑</button>
+    </div>`;
+  }).join('');
+}
+
+function showNewProjectForm() {
+  document.getElementById('newProjectForm').style.display = 'block';
+  document.getElementById('newProjectName').focus();
+}
+
+async function createProject() {
+  const name = document.getElementById('newProjectName').value.trim();
+  const url  = document.getElementById('newProjectUrl').value.trim();
+  if (!name) { alert('Ingresa el nombre del cliente'); return; }
+
+  const id = 'proj_' + Date.now();
+  const project = {
+    id, name, slideUrl: url, createdAt: Date.now(), updatedAt: Date.now(),
+    completedSlides: 0, slideStatus: [], allData: {}, conversations: [],
+    presentationId: url.match(/\/presentation\/d\/([a-zA-Z0-9_-]+)/)?.[1] || ''
+  };
+  await window.storage.set('project:' + id, JSON.stringify(project));
+  await openProject(id);
+}
+
+async function openProject(id) {
+  try {
+    const r = await window.storage.get('project:' + id);
+    if (!r?.value) return;
+    const project = JSON.parse(r.value);
+    currentProjectId = id;
+
+    // Restore state
+    presentationId = project.presentationId || '';
+    allData = project.allData || {};
+    slideStatus = project.slideStatus?.length ? project.slideStatus : SLIDES.map(() => 'pending');
+    conversations = project.conversations?.length ? project.conversations : SLIDES.map(() => []);
+
+    // Update URL field
+    if (project.slideUrl) {
+      document.getElementById('slideUrlInput').value = project.slideUrl;
+      localStorage.setItem('adapsys_slide_url', project.slideUrl);
+      localStorage.setItem('adapsys_pres_id', presentationId);
+    }
+
+    // Hide project screen, show app
+    document.getElementById('projectScreen').style.display = 'none';
+    document.getElementById('appHeader').style.display = 'flex';
+    document.getElementById('appMain').style.display = 'flex';
+    document.getElementById('openSlidesLink').href = project.slideUrl || '#';
+    document.getElementById('panelSlidesLink').href = project.slideUrl || '#';
+    document.getElementById('panelSlidesName').textContent = project.name;
+
+    initApp();
+  } catch(e) { console.error(e); }
+}
+
+async function saveCurrentProject() {
+  if (!currentProjectId) return;
+  try {
+    const r = await window.storage.get('project:' + currentProjectId);
+    if (!r?.value) return;
+    const project = JSON.parse(r.value);
+    project.updatedAt = Date.now();
+    project.allData = allData;
+    project.slideStatus = slideStatus;
+    project.conversations = conversations;
+    project.completedSlides = slideStatus.filter((s,i) => SLIDES[i]?.type !== 'fixed' && (s === 'done' || s === 'skip')).length;
+    project.presentationId = presentationId || project.presentationId;
+    await window.storage.set('project:' + currentProjectId, JSON.stringify(project));
+  } catch(e) { console.error('Save error:', e); }
+}
+
+async function deleteProject(e, id) {
+  e.stopPropagation();
+  if (!confirm('¿Eliminar esta propuesta? No se puede deshacer.')) return;
+  await window.storage.delete('project:' + id);
+  renderProjectList();
+}
+
+// ══════════════════════════════════════════
 // SLIDES DEFINITION
 // ══════════════════════════════════════════
 const SLIDES = [
@@ -569,9 +754,7 @@ function validateSlideUrl() {
 }
 
 function checkCanStart() {
-  const hasAuth = !!googleToken;
-  const hasPres = !!presentationId || !!localStorage.getItem('adapsys_pres_id');
-  document.getElementById('startBtn').disabled = !(hasAuth && hasPres);
+  document.getElementById('startBtn').disabled = !googleToken;
 }
 
 // ── OAuth PKCE ──
@@ -706,16 +889,10 @@ function startApp() {
     ANTHROPIC_KEY = key.trim();
     localStorage.setItem('adapsys_anthropic_key', ANTHROPIC_KEY);
   }
-  presentationId = presentationId || localStorage.getItem('adapsys_pres_id');
-  const url = document.getElementById('slideUrlInput').value || localStorage.getItem('adapsys_slide_url') || '';
+  // Show project selection screen
   document.getElementById('setupScreen').style.display = 'none';
-  document.getElementById('appHeader').style.display = 'flex';
-  document.getElementById('appMain').style.display = 'flex';
-  document.getElementById('openSlidesLink').href = url;
-  document.getElementById('panelSlidesLink').href = url;
-  const name = url.split('/').filter(Boolean).slice(-2,-1)[0] || 'Mi presentación';
-  document.getElementById('panelSlidesName').textContent = 'Template de propuesta';
-  initApp();
+  document.getElementById('projectScreen').style.display = 'flex';
+  renderProjectList();
 }
 
 // ══════════════════════════════════════════
@@ -759,7 +936,7 @@ function setSlide(idx) {
 }
 
 function goSlide(d) { const n=currentSlide+d; if(n>=0&&n<SLIDES.length) setSlide(n); }
-function skipSlide() { slideStatus[currentSlide]='skip'; renderSidebar(); updateProgress(); if(currentSlide<SLIDES.length-1) goSlide(1); }
+function skipSlide() { slideStatus[currentSlide]='skip'; renderSidebar(); updateProgress(); saveCurrentProject(); if(currentSlide<SLIDES.length-1) goSlide(1); }
 
 function renderMessages() {
   const c = document.getElementById('messages');
@@ -855,6 +1032,7 @@ Conversación:\n${hist.map(m=>`${m.role}: ${m.content}`).join('\n')}`;
     allData['slide'+(idx+1)] = j;
     slideStatus[idx] = 'done';
     renderSidebar(); renderPanel(); updateProgress();
+    saveCurrentProject();
   } catch(e) { console.error('extractData error', e); }
 }
 
@@ -1158,6 +1336,7 @@ async function applyPoolSlides() {
     renderSidebar(); updateProgress();
     status.innerHTML = `<span style="color:#047857;font-weight:500">✓ ${toDelete.length} lámina(s) eliminadas. La propuesta está lista — ábrela en Google Slides.</span>`;
     showToast(`✓ ${toDelete.length} láminas eliminadas`, 'success');
+    saveCurrentProject();
   } catch(e) {
     status.textContent = 'Error: ' + e.message;
     showToast('Error: ' + e.message, 'error');
