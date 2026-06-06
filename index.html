@@ -577,14 +577,12 @@ let currentProjectId = null;
 
 async function loadProjects() {
   try {
-    const result = await window.storage.list('project:');
-    const keys = result?.keys || [];
     const projects = [];
-    for (const key of keys) {
-      try {
-        const r = await window.storage.get(key);
-        if (r?.value) projects.push(JSON.parse(r.value));
-      } catch(e) {}
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('project:')) {
+        try { projects.push(JSON.parse(localStorage.getItem(key))); } catch(e) {}
+      }
     }
     return projects.sort((a,b) => (b.updatedAt||0) - (a.updatedAt||0));
   } catch(e) { return []; }
@@ -628,15 +626,15 @@ async function createProject() {
     completedSlides: 0, slideStatus: [], allData: {}, conversations: [],
     presentationId: url.match(/\/presentation\/d\/([a-zA-Z0-9_-]+)/)?.[1] || ''
   };
-  await window.storage.set('project:' + id, JSON.stringify(project));
+  localStorage.setItem('project:' + id, JSON.stringify(project));
   await openProject(id);
 }
 
 async function openProject(id) {
   try {
-    const r = await window.storage.get('project:' + id);
-    if (!r?.value) return;
-    const project = JSON.parse(r.value);
+    const raw = localStorage.getItem('project:' + id);
+    if (!raw) return;
+    const project = JSON.parse(raw);
     currentProjectId = id;
 
     // Restore state
@@ -667,23 +665,23 @@ async function openProject(id) {
 async function saveCurrentProject() {
   if (!currentProjectId) return;
   try {
-    const r = await window.storage.get('project:' + currentProjectId);
-    if (!r?.value) return;
-    const project = JSON.parse(r.value);
+    const raw = localStorage.getItem('project:' + currentProjectId);
+    if (!raw) return;
+    const project = JSON.parse(raw);
     project.updatedAt = Date.now();
     project.allData = allData;
     project.slideStatus = slideStatus;
     project.conversations = conversations;
     project.completedSlides = slideStatus.filter((s,i) => SLIDES[i]?.type !== 'fixed' && (s === 'done' || s === 'skip')).length;
     project.presentationId = presentationId || project.presentationId;
-    await window.storage.set('project:' + currentProjectId, JSON.stringify(project));
+    localStorage.setItem('project:' + currentProjectId, JSON.stringify(project));
   } catch(e) { console.error('Save error:', e); }
 }
 
 async function deleteProject(e, id) {
   e.stopPropagation();
   if (!confirm('¿Eliminar esta propuesta? No se puede deshacer.')) return;
-  await window.storage.delete('project:' + id);
+  localStorage.removeItem('project:' + id);
   renderProjectList();
 }
 
