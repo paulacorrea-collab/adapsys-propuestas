@@ -1088,7 +1088,7 @@ async function applySingleSlideAndConfirm(idx) {
   try {
     await applySingleSlide(idx);
     if (btn) btn.style.display = 'none';
-    if (statusEl) statusEl.innerHTML = '<span style="color:#047857;font-weight:600">✓ Lámina aplicada en Google Slides</span> · <button onclick="goSlide(1)" style="background:none;border:none;color:var(--teal);font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:12px;text-decoration:underline">Siguiente →</button>';
+    if (statusEl) statusEl.innerHTML = '<span style="color:#047857;font-weight:600">✓ Lámina aplicada en Google Slides</span> &nbsp;<button onclick="goSlide(1)" style="background:none;border:none;color:var(--teal);font-weight:600;cursor:pointer;font-size:12px;text-decoration:underline">Siguiente →</button>';
   } catch(e) {
     if (btn) { btn.disabled = false; btn.textContent = 'Aplicar en Slides ahora'; }
     if (statusEl) statusEl.innerHTML = '<span style="color:#dc2626">Error al aplicar. Intenta de nuevo.</span>';
