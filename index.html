@@ -1248,7 +1248,7 @@ function buildRequests(idx, data, slidePageId) {
     if (data.desc1) replaceText('Lorem ipsum dolor sit amet, diam donec neque nisl nibh, ante rutrum proin cras dui ac cum, amet nunc dolor. Senectus urna justo, dis tristique purus commodo at. Donec nullam pede, non neque nit.', data.desc1);
   }
 
-  return requests.filter(r => r.replaceAllText.replaceText !== undefined);
+ return requests.filter(r => r.replaceAllText?.replaceText !== undefined || r.createImage !== undefined);
 }
 
 async function batchUpdate(requests) {
