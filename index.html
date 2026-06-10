@@ -694,7 +694,7 @@ async function deleteProject(e, id) {
 const SLIDES = [
   { num:1, title:'Portada Adapsys',      desc:'Se mantiene igual siempre',              type:'fixed'    },
   { num:2, title:'Portada de propuesta', desc:'Título, fecha y nombre del cliente',      type:'edit',
-    fields:['titulo','fecha','nombreCliente'] },
+    fields:['titulo','fecha','nombreCliente','logoUrl'] },
   { num:3, title:'Notas previas',        desc:'Solo cambia el bullet de origen',         type:'edit',
     fields:['origen'] },
   { num:4, title:'Tabla de contenidos',  desc:'Números de página si cambian',            type:'edit',
@@ -1102,7 +1102,16 @@ async function applySingleSlide(idx) {
   if (!data) { showToast('No hay datos para esta lámina', 'error'); return; }
   showToast('Aplicando cambios…', '');
   try {
-    const requests = buildRequests(idx, data);
+    // For slide 2 with logo, we need the actual page object ID
+    let slidePageId = null;
+    if (SLIDES[idx].num === 2 && data.logoUrl) {
+      const presRes = await fetch(`https://slides.googleapis.com/v1/presentations/${presentationId}`, {
+        headers: { Authorization: 'Bearer ' + googleToken }
+      });
+      const presData = await presRes.json();
+      slidePageId = presData.slides?.[1]?.objectId || null; // slide 2 = index 1
+    }
+    const requests = buildRequests(idx, data, slidePageId);
     if (!requests.length) { showToast('No hay cambios para aplicar', ''); return; }
     await batchUpdate(requests);
     appliedCount++;
@@ -1119,9 +1128,18 @@ async function applyAllToSlides() {
   const btn = document.getElementById('applyAllBtn');
   btn.disabled = true; btn.textContent = 'Aplicando…';
   let allRequests = [];
+  // Get presentation data once for page IDs
+  let presSlides = [];
+  try {
+    const presRes = await fetch(`https://slides.googleapis.com/v1/presentations/${presentationId}`, {
+      headers: { Authorization: 'Bearer ' + googleToken }
+    });
+    const presData = await presRes.json();
+    presSlides = presData.slides || [];
+  } catch(e) {}
   for (let i=0; i<SLIDES.length; i++) {
     const data = allData['slide'+(i+1)];
-    if (data) allRequests = allRequests.concat(buildRequests(i, data));
+    if (data) allRequests = allRequests.concat(buildRequests(i, data, presSlides[i]?.objectId || null));
   }
   if (!allRequests.length) { showToast('No hay cambios que aplicar', ''); btn.disabled=false; btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Aplicar todo en Google Slides'; return; }
   try {
@@ -1137,7 +1155,7 @@ async function applyAllToSlides() {
 
 // Build Google Slides API batchUpdate requests for each slide
 // Uses replaceAllText — safe, doesn't require knowing shape IDs
-function buildRequests(idx, data) {
+function buildRequests(idx, data, slidePageId) {
   const requests = [];
   const slideNum = SLIDES[idx].num;
 
@@ -1153,9 +1171,24 @@ function buildRequests(idx, data) {
   }
 
   if (slideNum === 2) {
-    replaceText('EQUIPO EJECUTIVO PARA LOS DESAFÍOS DEL FUTURO', (data.titulo||'').toUpperCase());
+    replaceText('NOMBRE PROPUESTA', (data.titulo||'').toUpperCase());
     replaceText('xx | xx | xx', data.fecha || '');
-    replaceText('Logo cliente', data.nombreCliente || 'Logo cliente');
+    // If logo URL provided, insert image and remove placeholder text
+    if (data.logoUrl && data.logoUrl.startsWith('http')) {
+      requests.push({
+        createImage: {
+          url: data.logoUrl,
+          elementProperties: {
+            pageObjectId: slidePageId,
+            size: { width: { magnitude: 961200, unit: 'EMU' }, height: { magnitude: 961200, unit: 'EMU' } },
+            transform: { scaleX: 1, scaleY: 1, translateX: 375725, translateY: 4378050, unit: 'EMU' }
+          }
+        }
+      });
+      replaceText('Logo cliente', '');
+    } else {
+      replaceText('Logo cliente', data.nombreCliente || 'Logo cliente');
+    }
   }
 
   if (slideNum === 3 && data.origen) {
@@ -1250,9 +1283,11 @@ function initPrompt(idx) {
      Pide: ¿Para qué cliente es esta propuesta? ¿Cuál es el nombre de la propuesta/proyecto?`,
     `Estás en la lámina 2 "Portada de propuesta". Campos a completar:
      - Título central (ej: "LIDERAZGO PARA LOS DESAFÍOS DEL FUTURO")
-     - Fecha de la propuesta
-     - Nombre del cliente (para el círculo inferior izquierdo)
-     Pide estos tres datos de forma natural.`,
+     - Fecha de la propuesta (formato dd | mm | aa)
+     - URL del logo del cliente (debe ser una URL pública de imagen, ej: https://empresa.com/logo.png)
+     Explica que el logo se insertará en el círculo inferior izquierdo de la portada.
+     Si no tienen URL del logo disponible, pueden dejarlo para después.
+     Pide estos datos de forma natural y concisa.`,
     `Lámina 3 "Notas previas". Solo cambia el bullet de Origen.
      El texto actual dice "surge de conversaciones con el Directorio y secretario general de SNA."
      Pregunta: ¿De dónde surgió esta propuesta? ¿Con quiénes tuvieron las conversaciones iniciales?`,
