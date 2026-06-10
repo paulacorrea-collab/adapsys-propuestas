@@ -382,6 +382,30 @@ textarea:focus { border-color: var(--teal); background: white; }
 .apply-all-btn:hover { background: var(--teal-dark); }
 .apply-all-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
+/* File attachment */
+.attach-btn {
+  background: none; border: 1.5px solid var(--border); color: var(--muted);
+  border-radius: 10px; width: 42px; height: 42px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0; transition: all 0.2s; font-size: 18px;
+}
+.attach-btn:hover { border-color: var(--teal); color: var(--teal); background: var(--teal-light); }
+.attachment-preview {
+  margin: 0 20px 8px; padding: 10px 14px;
+  background: var(--teal-light); border: 1.5px solid var(--teal);
+  border-radius: 10px; display: flex; align-items: center; gap: 10px;
+  font-size: 13px; color: var(--teal-dark);
+}
+.attachment-preview .att-name { flex: 1; font-weight: 500; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.attachment-preview .att-remove { cursor: pointer; font-size: 16px; opacity: 0.6; flex-shrink: 0; }
+.attachment-preview .att-remove:hover { opacity: 1; }
+.att-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--teal-light); border: 1px solid var(--teal);
+  border-radius: 6px; padding: 3px 9px; font-size: 12px; color: var(--teal-dark);
+  font-weight: 500; margin-bottom: 6px;
+}
+
 /* Toast */
 .toast {
   position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
@@ -495,9 +519,18 @@ textarea:focus { border-color: var(--teal); background: white; }
 
     <div class="messages" id="messages"></div>
 
+    <div id="attachmentPreview" style="display:none" class="attachment-preview">
+      <span id="attIcon">📄</span>
+      <span class="att-name" id="attName">archivo.pdf</span>
+      <span class="att-remove" onclick="removeAttachment()">✕</span>
+    </div>
     <div class="input-row">
-      <textarea id="userInput" placeholder="Escribe tu respuesta…" rows="1"
-        onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <input type="file" id="fileInput" accept="image/*,.pdf" style="display:none" onchange="handleFileSelect(event)">
+      <button class="attach-btn" onclick="document.getElementById('fileInput').click()" title="Adjuntar archivo">
+        📎
+      </button>
+      <textarea id="userInput" placeholder="Escribe tu respuesta… adjunta 📎 o pega una imagen con Cmd+V" rows="1"
+        onkeydown="handleKey(event)" oninput="autoResize(this)" onpaste="handlePaste(event)"></textarea>
       <button class="send-btn" id="sendBtn" onclick="sendMessage()">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z"/></svg>
       </button>
@@ -1037,8 +1070,15 @@ async function sendMessage() {
     content: stripHtml(m.html||'')
   }));
 
+  // Show attachment in chat if present
+  const att = currentAttachment;
+  if (att) {
+    addMsg('user', `<div class="att-chip">${att.type==='image'?'🖼️':'📄'} ${esc(att.name)}</div>`);
+    removeAttachment();
+  }
+
   try {
-    const resp = await callClaude(hist, sysPrompt());
+    const resp = await callClaudeWithAttachment(hist, sysPrompt(), att);
     hideTyping();
     const ready = resp.includes('[LISTO]');
     const clean = resp.replace('[LISTO]','').trim();
@@ -1248,7 +1288,7 @@ function buildRequests(idx, data, slidePageId) {
     if (data.desc1) replaceText('Lorem ipsum dolor sit amet, diam donec neque nisl nibh, ante rutrum proin cras dui ac cum, amet nunc dolor. Senectus urna justo, dis tristique purus commodo at. Donec nullam pede, non neque nit.', data.desc1);
   }
 
- return requests.filter(r => r.replaceAllText?.replaceText !== undefined || r.createImage !== undefined);
+  return requests.filter(r => r.replaceAllText.replaceText !== undefined);
 }
 
 async function batchUpdate(requests) {
@@ -1318,6 +1358,48 @@ async function callClaude(messages, system) {
       'anthropic-dangerous-direct-browser-access': 'true'
     },
     body: JSON.stringify({ model:'claude-sonnet-4-5', max_tokens:1000, system, messages })
+  });
+  if (!res.ok) throw new Error('Claude API error ' + res.status);
+  const d = await res.json();
+  return d.content[0].text;
+}
+
+async function callClaudeWithAttachment(messages, system, attachment) {
+  if (!attachment) return callClaude(messages, system);
+
+  // Build the last user message with attachment
+  const lastMsg = messages[messages.length - 1];
+  const otherMsgs = messages.slice(0, -1);
+
+  let contentArray;
+  if (attachment.type === 'image') {
+    contentArray = [
+      { type: 'image', source: { type: 'base64', media_type: attachment.mediaType, data: attachment.content } },
+      { type: 'text', text: lastMsg?.content || 'Analiza este archivo y úsalo como contexto para esta lámina.' }
+    ];
+  } else {
+    // PDF as document
+    contentArray = [
+      { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: attachment.content } },
+      { type: 'text', text: lastMsg?.content || 'Analiza este documento y úsalo como contexto para esta lámina.' }
+    ];
+  }
+
+  const messagesWithAtt = [
+    ...otherMsgs,
+    { role: 'user', content: contentArray }
+  ];
+
+  if (!ANTHROPIC_KEY) throw new Error('Sin API key de Anthropic');
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': ANTHROPIC_KEY,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: 1000, system, messages: messagesWithAtt })
   });
   if (!res.ok) throw new Error('Claude API error ' + res.status);
   const d = await res.json();
@@ -1486,6 +1568,70 @@ function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>
 function stripHtml(s) { return s.replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim(); }
 function handleKey(e) { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();} }
 function autoResize(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,130)+'px'; }
+
+// ══ FILE ATTACHMENTS ══
+let currentAttachment = null; // { type: 'image'|'pdf'|'text', name, content, mediaType }
+
+function handleFileSelect(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  event.target.value = ''; // reset so same file can be selected again
+
+  const isImage = file.type.startsWith('image/');
+  const isPDF   = file.type === 'application/pdf';
+
+  if (!isImage && !isPDF) {
+    showToast('Solo se admiten imágenes y PDFs', 'error'); return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const result = e.target.result;
+    if (isImage) {
+      // Store as base64 image
+      const base64 = result.split(',')[1];
+      currentAttachment = { type: 'image', name: file.name, content: base64, mediaType: file.type };
+    } else {
+      // For PDF, store as base64 document
+      const base64 = result.split(',')[1];
+      currentAttachment = { type: 'pdf', name: file.name, content: base64, mediaType: 'application/pdf' };
+    }
+    showAttachmentPreview(file.name, isImage ? '🖼️' : '📄');
+  };
+  reader.readAsDataURL(file);
+}
+
+function handlePaste(event) {
+  const items = event.clipboardData?.items;
+  if (!items) return;
+  for (const item of items) {
+    if (item.type.startsWith('image/')) {
+      event.preventDefault();
+      const file = item.getAsFile();
+      if (!file) continue;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64 = e.target.result.split(',')[1];
+        currentAttachment = { type: 'image', name: 'pantallazo.png', content: base64, mediaType: item.type };
+        showAttachmentPreview('pantallazo.png', '🖼️');
+      };
+      reader.readAsDataURL(file);
+      break;
+    }
+  }
+}
+
+function showAttachmentPreview(name, icon) {
+  document.getElementById('attIcon').textContent = icon;
+  document.getElementById('attName').textContent = name;
+  document.getElementById('attachmentPreview').style.display = 'flex';
+}
+
+function removeAttachment() {
+  currentAttachment = null;
+  document.getElementById('attachmentPreview').style.display = 'none';
+  document.getElementById('fileInput').value = '';
+}
 
 // ══ INIT ══
 // Restore session
